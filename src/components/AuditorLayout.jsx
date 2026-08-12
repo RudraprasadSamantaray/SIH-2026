@@ -76,19 +76,19 @@ export default function AuditorLayout() {
               end={item.path === '/auditor'}
               onClick={() => setMobileMenuOpen(false)}
               className={({ isActive }) =>
-                `flex items-center gap-md px-md py-sm rounded transition-colors duration-200 ${
+                `flex items-center gap-md px-md py-sm rounded-lg transition-all duration-200 sidebar-link-hover ${
                   isActive
-                    ? 'border-r-4 border-tertiary text-tertiary font-bold bg-surface-container-low'
-                    : 'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface'
+                    ? 'text-tertiary font-bold bg-surface-container-low shadow-sm border-l-4 border-tertiary'
+                    : 'text-on-surface-variant hover:bg-surface-container-low/60 hover:text-on-surface'
                 }`
               }
             >
               {({ isActive }) => (
                 <>
-                  <span className="material-symbols-outlined" data-weight={isActive ? 'fill' : undefined}>
+                  <span className="material-symbols-outlined sidebar-icon-anim" data-weight={isActive ? 'fill' : undefined}>
                     {item.icon}
                   </span>
-                  <span className="font-body-md text-body-md">{item.label}</span>
+                  <span className="font-body-md text-sm">{item.label}</span>
                 </>
               )}
             </NavLink>
@@ -214,7 +214,9 @@ export default function AuditorLayout() {
 
         {/* Dynamic Auditor Outlet */}
         <main className="flex-1 mt-16 p-lg xl:p-xl transition-all duration-300 ease-in-out">
-          <Outlet />
+          <div className="page-transition-wrap">
+            <Outlet />
+          </div>
         </main>
       </div>
 

@@ -2,12 +2,17 @@ import React, { useState } from 'react';
 
 export default function DataVerification() {
   const [rows, setRows] = useState([
-    { field: 'Production Volume', value: '50,000 tons', status: 'Verified', note: 'Matches production log' },
-    { field: 'Energy Consumption', value: '250 GWh', status: 'Review Needed', note: 'Requires auxiliary meter check' },
-    { field: 'Water Intake', value: '1.2M m³', status: 'Verified', note: 'Municipal billing matches' },
-    { field: 'Recycled Scrap Ratio', value: '30%', status: 'Verified', note: 'Supplier certificates checked' },
-    { field: 'Freight Logistics', value: 'Submitted (120km truck / 850km rail)', status: 'Verified', note: 'Manifest documentation attached' },
+    { field: 'Production_kg',          value: '26,750 kg (30 batches)',              status: 'Verified',      note: 'Matches production log across all plants' },
+    { field: 'Electricity_kWh',        value: '97,419 kWh total',                   status: 'Review Needed', note: 'Requires auxiliary meter reconciliation' },
+    { field: 'Water_L',                value: '197,530 L total',                    status: 'Verified',      note: 'Municipal billing cross-checked' },
+    { field: 'Virgin_Material_kg',     value: '14,825 kg (avg 49% of total input)', status: 'Verified',      note: 'Supplier certificates verified' },
+    { field: 'Recycled_Material_kg',   value: '14,800 kg (avg 51% of total input)', status: 'Verified',      note: 'Scrap vendor delivery notes attached' },
+    { field: 'Fuel_L',                 value: '2,105 L diesel total',               status: 'Verified',      note: 'Fuel receipt log matched' },
+    { field: 'Transport_km',           value: '13,747 km total freight',            status: 'Review Needed', note: 'Rail vs road split to be confirmed' },
+    { field: 'Waste_Loss_kg',          value: '2,866 kg manufacturing loss',        status: 'Verified',      note: 'Scrap weighbridge records checked' },
+    { field: 'Recovered_Material_kg',  value: '18,463 kg recovered/recycled',       status: 'Verified',      note: 'EoL recovery manifests verified' },
   ]);
+
 
   const [activeNoteIdx, setActiveNoteIdx] = useState(null);
   const [tempNote, setTempNote] = useState('');

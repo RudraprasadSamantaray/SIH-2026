@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useDataset } from '../context/DataContext';
+import AnimatedNumber from '../components/AnimatedNumber';
 
 export default function Circularity() {
   const { metrics, selectedMetal, setSelectedMetal } = useDataset();
@@ -19,11 +20,11 @@ export default function Circularity() {
 
   return (
     <div className="space-y-lg">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-outline-variant/45">
         <div>
-          <h2 className="font-headline-lg text-headline-lg text-on-surface">Circularity Analysis</h2>
-          <p className="font-body-md text-body-md text-on-surface-variant mt-xs">
-            Material Circularity Indicator (MCI) &amp; closed-loop scrap recovery metrics calculated live from PS 25069 Dataset.
+          <h2 className="font-headline-lg text-2xl md:text-3xl font-bold text-on-surface">Circularity Analysis</h2>
+          <p className="font-body-md text-sm text-on-surface-variant mt-1">
+            Material Circularity Indicator (MCI) &amp; closed-loop scrap recovery metrics calculated live from active dataset.
           </p>
         </div>
 
@@ -32,8 +33,8 @@ export default function Circularity() {
             <button
               key={m}
               onClick={() => setSelectedMetal(m)}
-              className={`px-3 py-1 rounded transition-colors cursor-pointer ${
-                selectedMetal === m ? 'bg-primary text-on-primary font-bold' : 'text-on-surface-variant hover:text-on-surface'
+              className={`px-3 py-1 rounded transition-all duration-200 cursor-pointer ${
+                selectedMetal === m ? 'bg-primary text-on-primary font-bold shadow-sm' : 'text-on-surface-variant hover:text-on-surface'
               }`}
             >
               {m}
@@ -43,49 +44,57 @@ export default function Circularity() {
       </div>
 
       {/* Top Circularity Score Banner */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-gutter">
-        <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg flex items-center justify-between shadow-sm">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-gutter animate-fade-in-up">
+        <div className="premium-card rounded-xl p-lg flex items-center justify-between">
           <div>
             <span className="text-xs font-semibold uppercase text-on-surface-variant">MCI Score</span>
-            <div className="font-mono-data text-4xl font-bold text-primary mt-1">{mciScore}</div>
-            <span className="text-xs text-primary font-medium">Dataset Baseline: {(metrics.avgCircularity / 100).toFixed(2)} ({metrics.avgCircularity}/100)</span>
+            <div className="font-mono-data text-4xl font-bold text-primary mt-1">
+              <AnimatedNumber value={mciScore} decimals={2} />
+            </div>
+            <span className="text-[11px] text-primary font-semibold mt-1 block">
+              Dataset Baseline: <AnimatedNumber value={(metrics.avgCircularity / 100)} decimals={2} /> ({metrics.avgCircularity}/100)
+            </span>
           </div>
-          <div className="w-16 h-16 rounded-full border-4 border-primary border-t-primary-container flex items-center justify-center text-primary font-bold font-mono-data text-sm">
-            {Math.round(mciScore * 100)}%
+          <div className="w-16 h-16 rounded-full border-4 border-primary border-t-primary-container flex items-center justify-center text-primary font-bold font-mono-data text-sm shadow-sm">
+            <AnimatedNumber value={mciScore * 100} decimals={0} suffix="%" />
           </div>
         </div>
 
-        <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg flex items-center justify-between shadow-sm">
+        <div className="premium-card rounded-xl p-lg flex items-center justify-between">
           <div>
             <span className="text-xs font-semibold uppercase text-on-surface-variant">Recycled Material Input</span>
-            <div className="font-mono-data text-4xl font-bold text-secondary mt-1">{scrapRatio}%</div>
-            <span className="text-xs text-on-surface-variant">Virgin Input: {100 - scrapRatio}%</span>
+            <div className="font-mono-data text-4xl font-bold text-secondary mt-1">
+              <AnimatedNumber value={scrapRatio} decimals={0} suffix="%" />
+            </div>
+            <span className="text-[11px] text-on-surface-variant mt-1 block">Virgin Input: <AnimatedNumber value={100 - scrapRatio} decimals={0} suffix="%" /></span>
           </div>
-          <div className="w-12 h-12 bg-secondary-container/40 text-secondary rounded-full flex items-center justify-center">
+          <div className="w-12 h-12 bg-secondary-container/30 text-secondary rounded-full flex items-center justify-center shadow-sm">
             <span className="material-symbols-outlined text-2xl">recycling</span>
           </div>
         </div>
 
-        <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg flex items-center justify-between shadow-sm">
+        <div className="premium-card rounded-xl p-lg flex items-center justify-between">
           <div>
             <span className="text-xs font-semibold uppercase text-on-surface-variant">Recovery / Waste Diversion</span>
-            <div className="font-mono-data text-4xl font-bold text-tertiary mt-1">{metrics.avgRecoveryPct}%</div>
-            <span className="text-xs text-tertiary font-medium">Total Loss: {(metrics.totalMfgLossKg / 1000).toFixed(2)}t</span>
+            <div className="font-mono-data text-4xl font-bold text-tertiary mt-1">
+              <AnimatedNumber value={metrics.avgRecoveryPct} decimals={0} suffix="%" />
+            </div>
+            <span className="text-[11px] text-tertiary font-semibold mt-1 block">Total Loss: <AnimatedNumber value={metrics.totalMfgLossKg / 1000} decimals={2} suffix="t" /></span>
           </div>
-          <div className="w-12 h-12 bg-tertiary-container/40 text-tertiary rounded-full flex items-center justify-center">
+          <div className="w-12 h-12 bg-tertiary-container/30 text-tertiary rounded-full flex items-center justify-center shadow-sm">
             <span className="material-symbols-outlined text-2xl">autorenew</span>
           </div>
         </div>
       </div>
 
       {/* Interactive Scrap Intake Adjuster */}
-      <section className="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg shadow-sm">
-        <div className="flex justify-between items-center mb-md border-b border-outline-variant pb-sm">
+      <section className="premium-card rounded-xl p-lg">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-md border-b border-outline-variant/60 pb-sm gap-2">
           <div>
-            <h3 className="font-headline-sm text-headline-sm text-on-surface">Recycled Scrap Input Simulator</h3>
+            <h3 className="font-headline-sm text-base font-bold text-on-surface">Recycled Scrap Input Simulator</h3>
             <p className="text-xs text-on-surface-variant">Adjust secondary recycled material % to project MCI score &amp; carbon offset</p>
           </div>
-          <span className="text-xs bg-primary-container text-on-primary font-bold px-3 py-1 rounded">
+          <span className="text-xs bg-primary-container/10 text-primary font-bold px-3 py-1.5 rounded-lg border border-primary/20 shadow-sm">
             Projected CO2 Offset: {parseFloat(carbonSavings) >= 0 ? `-${carbonSavings}` : `+${Math.abs(carbonSavings)}`} tCO2e
           </span>
         </div>
@@ -101,7 +110,7 @@ export default function Circularity() {
             max="90"
             value={scrapRatio}
             onChange={(e) => setScrapRatio(Number(e.target.value))}
-            className="w-full h-2 bg-surface-variant rounded-lg appearance-none cursor-pointer accent-primary"
+            className="w-full h-2 bg-surface-variant rounded-lg appearance-none cursor-pointer accent-primary transition-all duration-200"
           />
           <div className="flex justify-between text-[11px] text-on-surface-variant">
             <span>10% Minimum</span>
@@ -112,34 +121,42 @@ export default function Circularity() {
       </section>
 
       {/* Circular Material Flow Diagram */}
-      <section className="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg shadow-sm">
-        <h3 className="font-headline-sm text-headline-sm text-on-surface mb-md border-b border-outline-variant pb-sm">
-          Closed-Loop Material Flow ({metrics.totalQuantityTons} tonnes metal)
+      <section className="premium-card rounded-xl p-lg">
+        <h3 className="font-headline-sm text-base font-bold text-on-surface mb-md border-b border-outline-variant/60 pb-sm">
+          Closed-Loop Material Flow (<AnimatedNumber value={metrics.totalQuantityTons} decimals={1} /> tonnes metal)
         </h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-md text-center py-4">
-          <div className="bg-surface-bright p-md border border-outline-variant rounded-lg">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-md text-center py-4">
+          <div className="bg-surface-bright/70 p-md border border-outline-variant/60 rounded-xl hover:border-primary/20 transition-all duration-200 shadow-sm">
             <span className="material-symbols-outlined text-primary text-3xl mb-2">delete_sweep</span>
             <h4 className="font-bold text-sm text-on-surface">Industrial Scrap Input</h4>
-            <p className="text-xs text-on-surface-variant mt-1">{((metrics.totalQuantityKg * metrics.avgRecycledPct / 100) / 1000).toFixed(2)} tonnes recycled input</p>
+            <p className="text-xs text-on-surface-variant mt-1">
+              <AnimatedNumber value={((metrics.totalQuantityKg * metrics.avgRecycledPct / 100) / 1000)} decimals={2} /> tonnes recycled input
+            </p>
           </div>
 
-          <div className="bg-surface-bright p-md border border-outline-variant rounded-lg">
+          <div className="bg-surface-bright/70 p-md border border-outline-variant/60 rounded-xl hover:border-secondary/20 transition-all duration-200 shadow-sm">
             <span className="material-symbols-outlined text-secondary text-3xl mb-2">filter_alt</span>
             <h4 className="font-bold text-sm text-on-surface">Material Recovery</h4>
-            <p className="text-xs text-on-surface-variant mt-1">{metrics.avgRecoveryPct}% recovery rate verified</p>
+            <p className="text-xs text-on-surface-variant mt-1">
+              <AnimatedNumber value={metrics.avgRecoveryPct} decimals={0} suffix="%" /> recovery rate verified
+            </p>
           </div>
 
-          <div className="bg-surface-bright p-md border border-outline-variant rounded-lg">
+          <div className="bg-surface-bright/70 p-md border border-outline-variant/60 rounded-xl hover:border-tertiary/20 transition-all duration-200 shadow-sm">
             <span className="material-symbols-outlined text-tertiary text-3xl mb-2">hvac</span>
             <h4 className="font-bold text-sm text-on-surface">Re-melting / Smelting</h4>
-            <p className="text-xs text-on-surface-variant mt-1">{metrics.totalEnergyMwh} MWh total energy</p>
+            <p className="text-xs text-on-surface-variant mt-1">
+              <AnimatedNumber value={metrics.totalEnergyMwh} decimals={1} /> MWh total energy
+            </p>
           </div>
 
-          <div className="bg-surface-bright p-md border border-outline-variant rounded-lg">
+          <div className="bg-surface-bright/70 p-md border border-outline-variant/60 rounded-xl hover:border-primary/20 transition-all duration-200 shadow-sm">
             <span className="material-symbols-outlined text-primary text-3xl mb-2">inventory_2</span>
             <h4 className="font-bold text-sm text-on-surface">Finished Product Output</h4>
-            <p className="text-xs text-on-surface-variant mt-1">{metrics.totalQuantityTons} tonnes finished metal</p>
+            <p className="text-xs text-on-surface-variant mt-1">
+              <AnimatedNumber value={metrics.totalQuantityTons} decimals={1} /> tonnes finished metal
+            </p>
           </div>
         </div>
       </section>

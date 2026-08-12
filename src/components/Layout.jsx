@@ -32,7 +32,7 @@ export default function Layout() {
     <div className="flex min-h-screen bg-background font-body-md text-on-surface">
       {/* Sidebar Navigation */}
       <aside
-        className={`fixed left-0 top-0 h-screen w-[260px] bg-surface-container-lowest border-r border-outline-variant flex flex-col py-lg px-md z-50 transition-all duration-300 ease-in-out shadow-md ${
+        className={`fixed left-0 top-0 h-screen w-[240px] bg-surface-container-lowest border-r border-outline-variant/60 flex flex-col py-lg px-md z-50 transition-all duration-300 ease-in-out ${
           mobileMenuOpen
             ? 'translate-x-0'
             : sidebarCollapsed
@@ -71,26 +71,26 @@ export default function Layout() {
         </div>
 
         {/* Sidebar Navigation Links */}
-        <nav className="flex-1 overflow-y-auto space-y-1">
+        <nav className="flex-1 overflow-y-auto space-y-[10px]">
           {navItems.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
               onClick={() => setMobileMenuOpen(false)}
               className={({ isActive }) =>
-                `flex items-center gap-md px-md py-sm rounded transition-colors duration-200 ${
+                `flex items-center gap-md px-md py-2.5 rounded-lg transition-all duration-150 sidebar-link-hover ${
                   isActive
-                    ? 'border-r-4 border-primary text-primary font-bold bg-surface-container-low'
-                    : 'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface'
+                    ? 'text-primary font-bold bg-primary/10 border-l-4 border-primary'
+                    : 'text-on-surface-variant hover:bg-surface-container-low/40 hover:text-on-surface'
                 }`
               }
             >
               {({ isActive }) => (
                 <>
-                  <span className="material-symbols-outlined" data-weight={isActive ? 'fill' : undefined}>
+                  <span className="material-symbols-outlined sidebar-icon-anim" data-weight={isActive ? 'fill' : undefined}>
                     {item.icon}
                   </span>
-                  <span className="font-body-md text-body-md">{item.label}</span>
+                  <span className="font-body-md text-sm">{item.label}</span>
                 </>
               )}
             </NavLink>
@@ -121,7 +121,7 @@ export default function Layout() {
       {/* Main Container - Moves smoothly when sidebar collapses/expands */}
       <div
         className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ease-in-out ${
-          sidebarCollapsed ? 'md:ml-0' : 'md:ml-[260px]'
+          sidebarCollapsed ? 'md:ml-0' : 'md:ml-[240px]'
         }`}
       >
         {/* Top Header */}
@@ -129,7 +129,7 @@ export default function Layout() {
           className={`fixed top-0 right-0 h-16 bg-surface-container-lowest border-b border-outline-variant flex justify-between items-center px-lg z-40 transition-all duration-300 ease-in-out ${
             sidebarCollapsed
               ? 'w-full left-0'
-              : 'w-full md:w-[calc(100%-260px)] md:left-[260px]'
+              : 'w-full md:w-[calc(100%-240px)] md:left-[240px]'
           }`}
         >
           <div className="flex items-center gap-md">
@@ -223,7 +223,9 @@ export default function Layout() {
 
         {/* Dynamic Page Outlet with top margin to accommodate fixed header */}
         <main className="flex-1 mt-16 p-lg xl:p-xl transition-all duration-300 ease-in-out">
-          <Outlet />
+          <div className="page-transition-wrap">
+            <Outlet />
+          </div>
         </main>
       </div>
 

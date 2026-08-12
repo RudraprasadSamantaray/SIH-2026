@@ -8,7 +8,7 @@ export const downloadExecutiveReport = ({ metrics, simMetrics, simControls, acti
 
   const metalRows = metrics.metalStats.map((m) =>
     `<tr>
-      <td>${m.metal}</td>
+      <td>${m.material}</td>
       <td>${m.count}</td>
       <td>${m.quantity_tons} t</td>
       <td>${m.co2_tons} tCO2e</td>
@@ -80,7 +80,7 @@ export const downloadExecutiveReport = ({ metrics, simMetrics, simControls, acti
       <div class="value">${format.format(metrics.totalMfgLossKg)} kg</div>
     </div>
   </div>
-  <p>Carbon intensity: <strong>${metrics.carbonIntensityPerKg} kg CO2e/kg</strong> | Energy intensity: <strong>${metrics.energyIntensityPerKg} kWh/kg</strong> | Total freight: <strong>${format.format(metrics.totalTransportKm)} km</strong> (avg ${metrics.avgTransportKm} km/batch).</p>
+  <p>Carbon intensity: <strong>${metrics.carbonIntensityPerKg} kg CO2e/kg</strong> | Energy intensity: <strong>${metrics.energyIntensityPerKg} kWh/kg</strong> | Fuel consumed: <strong>${format.format(metrics.totalFuelL)} L</strong> | Total freight: <strong>${format.format(metrics.totalTransportKm)} km</strong> (avg ${metrics.avgTransportKm} km/batch).</p>
   <p>Material mix: <span class="highlight">${metrics.avgRecycledPct}% recycled</span> and ${metrics.avgVirginPct}% virgin input | Recovery rate: ${metrics.avgRecoveryPct}%.</p>
 
   <h2>3. Circularity &amp; Scoring</h2>
@@ -149,7 +149,7 @@ export const downloadExecutiveReport = ({ metrics, simMetrics, simControls, acti
   </ol>
 
   <div class="footer">
-    <p>This data-driven executive report is generated in-browser by EcoMetrix AI from the active PS 25069 dataset and calculated application metrics. It is not an independently verified Environmental Product Declaration (EPD) under ISO 14025. For compliance certification, submit to an accredited third-party verifier.</p>
+    <p>CO2 emissions in this report are calculated using the India electricity grid emission factor (0.82 kg CO2/kWh, CEA 2023-24) and diesel emission factor (2.68 kg CO2/L) applied to raw operational data. Circularity Index is computed using a simplified MCI formula: 40% recycled input + 60% end-of-life recovery. This data-driven executive report is generated in-browser by EcoMetrix AI. It is not an independently verified Environmental Product Declaration (EPD) under ISO 14025. For compliance certification, submit to an accredited third-party verifier.</p>
   </div>
 
   <script>

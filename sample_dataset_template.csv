@@ -1,0 +1,11 @@
+Date,Plant_ID,Plant_Name,Location,Material,Product,Production_kg,Electricity_kWh,Water_L,Virgin_Material_kg,Recycled_Material_kg,Fuel_L,Transport_km,Waste_Loss_kg,Recovered_Material_kg
+2024-01-15,P001,Your Plant Name,Your City,Steel,Beam,500,2926,5657,150,350,65,330,55,305
+2024-01-22,P001,Your Plant Name,Your City,Steel,Machine Part,500,3528,2488,200,300,72,112,43,340
+2024-02-05,P001,Your Plant Name,Your City,Steel,Machine Part,500,2614,10928,200,300,58,813,127,345
+2024-02-18,P001,Your Plant Name,Your City,Steel,Pipe,500,4659,7574,350,150,85,512,91,320
+2024-03-01,P001,Your Plant Name,Your City,Steel,Machine Part,1000,2587,3139,400,600,58,801,31,690
+2024-03-14,P002,Your Plant Name,Your City,Aluminium,Beverage Can,1250,2311,3291,500,750,52,467,161,913
+2024-03-19,P002,Your Plant Name,Your City,Aluminium,Beverage Can,1500,4253,10005,1200,300,84,411,24,930
+2024-04-02,P002,Your Plant Name,Your City,Aluminium,Car Body Panel,750,4502,11007,525,225,88,566,62,533
+2024-04-16,P003,Your Plant Name,Your City,Copper,Electrical Wire,500,2196,7635,250,250,50,447,174,355
+2024-04-24,P003,Your Plant Name,Your City,Copper,Power Cable,750,3821,2771,300,450,77,173,48,480

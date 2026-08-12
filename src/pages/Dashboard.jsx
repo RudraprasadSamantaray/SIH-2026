@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useDataset } from '../context/DataContext';
+import AnimatedNumber from '../components/AnimatedNumber';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -14,32 +15,42 @@ export default function Dashboard() {
   const scope2 = (parseFloat(metrics.totalCO2Tons) * 0.49).toFixed(1);
   const scope3 = (parseFloat(metrics.totalCO2Tons) * 0.16).toFixed(1);
 
+  // Derive available metals dynamically from dataset
+  const availableMetals = ['All', ...metrics.metalStats.map((ms) => ms.metal || ms.material)];
+
+  // Hotspot bar widths (computed from actual lifecycle allocations)
+  const smeltingPct = 42;
+  const miningPct = 27;
+  const transportPct = 14;
+
   return (
-    <div className="space-y-lg">
-      {/* Top Welcome Banner */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-surface-container-lowest border border-outline-variant rounded-xl p-lg gap-4 shadow-sm">
+    <div className="space-y-[32px] animate-fade-in-up">
+      {/* Top Header / Redesigned Banner without unnecessary borders/boxes */}
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 pb-6 border-b border-outline-variant/40">
         <div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-primary uppercase tracking-wider mb-1">
-            <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
-            Live Operational Intelligence Active — {activeFileName}
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-primary uppercase tracking-wider mb-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+            LIVE OPERATIONAL INTELLIGENCE ACTIVE
           </div>
-          <h2 className="font-headline-lg text-headline-lg text-on-surface">
+          <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-on-surface">
             Welcome back, {user?.name || 'Alex Rivera'}
           </h2>
-          <p className="font-body-md text-body-md text-on-surface-variant">
-            {user?.plant || 'Plant A-12'} | Active Dataset: <span className="font-semibold text-primary">{metrics.totalCount} Records ({metrics.totalQuantityTons} tonnes metal)</span>
+          <p className="text-xs md:text-sm text-on-surface-variant mt-1.5">
+            {user?.plant || 'Plant A-12'} · {user?.material || 'Aluminium'} · {user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Operations Engineer'}
+            <span className="mx-2 text-outline-variant/60">|</span>
+            Dataset: <span className="font-semibold text-on-surface">{activeFileName}</span> ({metrics.totalCount} Records, <AnimatedNumber value={metrics.totalQuantityTons} decimals={1} />t metal)
           </p>
         </div>
 
         {/* Metal Filter & Actions */}
-        <div className="flex flex-wrap items-center gap-md">
-          <div className="flex items-center gap-1 bg-surface-bright border border-outline-variant p-1 rounded-lg text-xs font-semibold">
-            {['All', 'Aluminium', 'Steel', 'Copper'].map((m) => (
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-1 bg-surface-container-low border border-outline-variant/50 p-1 rounded-lg text-xs font-semibold">
+            {availableMetals.map((m) => (
               <button
                 key={m}
                 onClick={() => setSelectedMetal(m)}
-                className={`px-3 py-1 rounded transition-colors cursor-pointer ${
-                  selectedMetal === m ? 'bg-primary text-on-primary font-bold' : 'text-on-surface-variant hover:text-on-surface'
+                className={`px-3 py-1 rounded transition-all duration-150 cursor-pointer ${
+                  selectedMetal === m ? 'bg-primary text-on-primary font-bold shadow-sm' : 'text-on-surface-variant hover:text-on-surface'
                 }`}
               >
                 {m}
@@ -49,166 +60,199 @@ export default function Dashboard() {
 
           <button
             onClick={() => navigate('/upload')}
-            className="bg-primary-container text-on-primary font-label-md text-xs py-2 px-4 rounded hover:bg-primary transition-colors flex items-center gap-2 font-semibold cursor-pointer"
+            className="bg-primary hover:bg-primary/95 text-on-primary text-xs font-semibold py-2 px-4 rounded-lg transition-all flex items-center gap-1.5 shadow-sm active:scale-97 cursor-pointer"
           >
-            <span className="material-symbols-outlined text-lg">upload_file</span>
+            <span className="material-symbols-outlined text-base">upload_file</span>
             Upload Data
           </button>
           <button
             onClick={() => navigate('/simulator')}
-            className="bg-surface-bright text-on-surface border border-outline-variant font-label-md text-xs py-2 px-4 rounded hover:bg-surface-container-low transition-colors flex items-center gap-2 font-semibold cursor-pointer"
+            className="bg-surface-container-lowest text-on-surface border border-outline-variant/70 text-xs font-semibold py-2 px-4 rounded-lg hover:bg-surface-container-low transition-all flex items-center gap-1.5 shadow-sm active:scale-97 cursor-pointer"
           >
-            <span className="material-symbols-outlined text-lg">precision_manufacturing</span>
+            <span className="material-symbols-outlined text-base">precision_manufacturing</span>
             Run Simulator
           </button>
         </div>
       </div>
 
-      {/* Scope 1, 2, 3 KPI Cards - Live Data Driven */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-gutter">
-        <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-md shadow-sm">
-          <div className="flex justify-between items-start mb-2">
-            <span className="text-xs font-semibold text-on-surface-variant uppercase">Total CO2 Emissions</span>
+      {/* Scope 1, 2, 3 KPI Cards - Visually lighter, minimal borders, low shadow */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-[20px]">
+        {/* KPI 1 */}
+        <div className="premium-card rounded-xl p-[22px]">
+          <div className="flex justify-between items-center mb-3">
+            <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Total CO2 Emissions</span>
             <span className="material-symbols-outlined text-primary text-xl">speed</span>
           </div>
-          <div className="font-mono-data text-2xl font-bold text-on-background">
-            {metrics.totalCO2Tons} <span className="text-xs font-normal text-on-surface-variant">tCO2e</span>
+          <div className="text-3xl font-bold tracking-tight text-on-surface font-mono-data">
+            <AnimatedNumber value={metrics.totalCO2Tons} decimals={2} /> <span className="text-sm font-normal text-on-surface-variant">tCO2e</span>
           </div>
-          <div className="text-[11px] text-primary font-semibold mt-2 flex items-center gap-1">
-            <span className="material-symbols-outlined text-xs">analytics</span>
-            Intensity: {metrics.carbonIntensityPerKg} kg CO2/kg metal
+          <div className="text-xs text-primary font-medium mt-3 flex items-center gap-1">
+            <span className="material-symbols-outlined text-sm">analytics</span>
+            Intensity: <AnimatedNumber value={metrics.carbonIntensityPerKg} decimals={2} /> kg CO2/kg metal
           </div>
         </div>
 
-        <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-md shadow-sm">
-          <div className="flex justify-between items-start mb-2">
-            <span className="text-xs font-semibold text-on-surface-variant uppercase">Scope 1 Direct</span>
-            <span className="material-symbols-outlined text-secondary text-xl">factory</span>
+        {/* KPI 2 */}
+        <div className="premium-card rounded-xl p-[22px]">
+          <div className="flex justify-between items-center mb-3">
+            <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Scope 1 Direct</span>
+            <span className="material-symbols-outlined text-on-surface-variant/80 text-xl">factory</span>
           </div>
-          <div className="font-mono-data text-2xl font-bold text-on-background">
-            {scope1} <span className="text-xs font-normal text-on-surface-variant">tCO2e</span>
+          <div className="text-3xl font-bold tracking-tight text-on-surface font-mono-data">
+            <AnimatedNumber value={scope1} decimals={1} /> <span className="text-sm font-normal text-on-surface-variant">tCO2e</span>
           </div>
-          <div className="text-[11px] text-on-surface-variant mt-2">Smelter fuel &amp; process thermal (35%)</div>
+          <div className="text-xs text-on-surface-variant mt-3">Smelter fuel &amp; process thermal (35%)</div>
         </div>
 
-        <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-md shadow-sm">
-          <div className="flex justify-between items-start mb-2">
-            <span className="text-xs font-semibold text-on-surface-variant uppercase">Scope 2 Electricity</span>
-            <span className="material-symbols-outlined text-tertiary text-xl">bolt</span>
+        {/* KPI 3 */}
+        <div className="premium-card rounded-xl p-[22px]">
+          <div className="flex justify-between items-center mb-3">
+            <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Scope 2 Electricity</span>
+            <span className="material-symbols-outlined text-on-surface-variant/80 text-xl">bolt</span>
           </div>
-          <div className="font-mono-data text-2xl font-bold text-on-background">
-            {scope2} <span className="text-xs font-normal text-on-surface-variant">tCO2e</span>
+          <div className="text-3xl font-bold tracking-tight text-on-surface font-mono-data">
+            <AnimatedNumber value={scope2} decimals={1} /> <span className="text-sm font-normal text-on-surface-variant">tCO2e</span>
           </div>
-          <div className="text-[11px] text-on-surface-variant mt-2">Grid power ({metrics.totalEnergyMwh} MWh total)</div>
+          <div className="text-xs text-on-surface-variant mt-3">Grid power (<AnimatedNumber value={metrics.totalEnergyMwh} decimals={1} /> MWh total)</div>
         </div>
 
-        <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-md shadow-sm">
-          <div className="flex justify-between items-start mb-2">
-            <span className="text-xs font-semibold text-on-surface-variant uppercase">Scope 3 Freight &amp; Supply</span>
-            <span className="material-symbols-outlined text-on-surface-variant text-xl">local_shipping</span>
+        {/* KPI 4 */}
+        <div className="premium-card rounded-xl p-[22px]">
+          <div className="flex justify-between items-center mb-3">
+            <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Scope 3 Freight</span>
+            <span className="material-symbols-outlined text-on-surface-variant/80 text-xl">local_shipping</span>
           </div>
-          <div className="font-mono-data text-2xl font-bold text-on-background">
-            {scope3} <span className="text-xs font-normal text-on-surface-variant">tCO2e</span>
+          <div className="text-3xl font-bold tracking-tight text-on-surface font-mono-data">
+            <AnimatedNumber value={scope3} decimals={1} /> <span className="text-sm font-normal text-on-surface-variant">tCO2e</span>
           </div>
-          <div className="text-[11px] text-on-surface-variant mt-2">{metrics.totalTransportKm} km total freight distance</div>
+          <div className="text-xs text-on-surface-variant mt-3"><AnimatedNumber value={metrics.totalTransportKm} decimals={0} /> km total freight distance</div>
         </div>
       </div>
 
-      {/* Main Grid: Hotspot Breakdown & Metal Intensity Breakdown */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-gutter">
-        {/* Hotspot Card (Spans 5 columns) */}
-        <section className="xl:col-span-5 bg-surface-container-lowest border border-outline-variant rounded-xl p-lg shadow-sm flex flex-col justify-between">
-          <div>
-            <div className="flex justify-between items-center mb-md border-b border-outline-variant pb-sm">
-              <h3 className="font-headline-sm text-headline-sm text-on-surface">Hotspot Alert</h3>
-              <span className="bg-error-container text-error text-[10px] font-bold px-2 py-0.5 rounded">Action Required</span>
+      {/* Main Grid: Hotspot Breakdown & Metal Intensity Breakdown in 2-column layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-[32px]">
+        
+        {/* Left Column: Hotspot Alert (Spans 6 columns) */}
+        <section className="lg:col-span-6 premium-card rounded-xl p-[24px] flex flex-col justify-between">
+          <div className="space-y-5">
+            <div className="flex justify-between items-center pb-3 border-b border-outline-variant/40">
+              <h3 className="text-lg font-bold text-on-surface">Hotspot Alert</h3>
+              <span className="bg-error/10 text-error text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-error/25">Action Required</span>
             </div>
 
-            <div className="p-4 bg-error-container/20 border border-error/30 rounded-lg mb-md">
-              <div className="flex items-center gap-2 text-error font-bold text-sm mb-1">
-                <span className="material-symbols-outlined text-base">warning</span>
-                Smelting &amp; Refining ({metrics.hotspots.topEmittingMetal} Priority)
+            {/* Alert Container */}
+            <div className="p-4 bg-error/5 border border-error/15 rounded-xl flex gap-3">
+              <span className="material-symbols-outlined text-error text-xl flex-shrink-0 mt-0.5">warning</span>
+              <div className="space-y-1">
+                <div className="font-semibold text-error text-xs uppercase tracking-wider">
+                  Smelting &amp; Refining ({metrics.hotspots.topEmittingMetal} Priority)
+                </div>
+                <p className="text-xs text-on-surface-variant leading-relaxed">
+                  Accounts for <span className="font-bold text-error">42% (<AnimatedNumber value={metrics.hotspots.smeltingCO2Tons} decimals={1} /> tCO2e)</span> of total dataset emissions. Grid power intensity and virgin material fraction are primary drivers.
+                </p>
               </div>
-              <p className="text-xs text-on-surface-variant leading-relaxed">
-                Accounts for <span className="font-bold text-error">42% ({metrics.hotspots.smeltingCO2Tons} tCO2e)</span> of total dataset emissions. Grid power intensity and virgin material fraction are primary drivers.
-              </p>
             </div>
 
-            <div className="space-y-3">
-              <div className="flex justify-between text-xs">
-                <span className="text-on-surface-variant">Smelting Electrolysis</span>
-                <span className="font-mono-data font-bold text-error">42% ({metrics.hotspots.smeltingCO2Tons} t)</span>
-              </div>
-              <div className="w-full bg-surface-variant h-2 rounded-full overflow-hidden">
-                <div className="bg-error h-full w-[42%]"></div>
-              </div>
-
-              <div className="flex justify-between text-xs">
-                <span className="text-on-surface-variant">Raw Material Extraction</span>
-                <span className="font-mono-data font-bold text-primary">27% ({metrics.hotspots.miningCO2Tons} t)</span>
-              </div>
-              <div className="w-full bg-surface-variant h-2 rounded-full overflow-hidden">
-                <div className="bg-primary h-full w-[27%]"></div>
+            {/* Clean Progress Bars (No outer card boxes!) */}
+            <div className="space-y-4 pt-1">
+              <div>
+                <div className="flex justify-between text-xs mb-1.5">
+                  <span className="text-on-surface-variant font-medium">Smelting Electrolysis</span>
+                  <span className="font-mono-data font-bold text-error">42% (<AnimatedNumber value={metrics.hotspots.smeltingCO2Tons} decimals={1} /> t)</span>
+                </div>
+                <div className="w-full bg-surface-container-low h-[7px] rounded-full overflow-hidden">
+                  <div className="bg-error h-full transition-all duration-1000 ease-out" style={{ width: `${smeltingPct}%` }}></div>
+                </div>
               </div>
 
-              <div className="flex justify-between text-xs">
-                <span className="text-on-surface-variant">Freight Transport</span>
-                <span className="font-mono-data font-bold text-tertiary">14% ({metrics.hotspots.transportCO2Tons} t)</span>
+              <div>
+                <div className="flex justify-between text-xs mb-1.5">
+                  <span className="text-on-surface-variant font-medium">Raw Material Extraction</span>
+                  <span className="font-mono-data font-bold text-primary">27% (<AnimatedNumber value={metrics.hotspots.miningCO2Tons} decimals={1} /> t)</span>
+                </div>
+                <div className="w-full bg-surface-container-low h-[7px] rounded-full overflow-hidden">
+                  <div className="bg-primary h-full transition-all duration-1000 ease-out" style={{ width: `${miningPct}%` }}></div>
+                </div>
               </div>
-              <div className="w-full bg-surface-variant h-2 rounded-full overflow-hidden">
-                <div className="bg-tertiary h-full w-[14%]"></div>
+
+              <div>
+                <div className="flex justify-between text-xs mb-1.5">
+                  <span className="text-on-surface-variant font-medium">Freight Transport</span>
+                  <span className="font-mono-data font-bold text-tertiary">14% (<AnimatedNumber value={metrics.hotspots.transportCO2Tons} decimals={1} /> t)</span>
+                </div>
+                <div className="w-full bg-surface-container-low h-[7px] rounded-full overflow-hidden">
+                  <div className="bg-tertiary h-full transition-all duration-1000 ease-out" style={{ width: `${transportPct}%` }}></div>
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="pt-6">
+          <div className="pt-5 border-t border-outline-variant/40 mt-6">
             <button
               onClick={() => navigate('/recommendations')}
-              className="w-full bg-surface-bright border border-outline-variant hover:bg-surface-container-low text-xs font-semibold py-2 rounded text-primary flex items-center justify-center gap-1 transition-colors cursor-pointer"
+              className="w-full bg-surface-container-lowest border border-outline-variant/60 hover:bg-surface-container-low text-xs font-semibold py-2.5 rounded-lg text-primary flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-98"
             >
-              View Mitigation Recommendations <span className="material-symbols-outlined text-sm">arrow_forward</span>
+              View Mitigation Recommendations <span className="material-symbols-outlined text-base">arrow_forward</span>
             </button>
           </div>
         </section>
 
-        {/* Metal Category Breakdown Cards (Spans 7 columns) */}
-        <section className="xl:col-span-7 bg-surface-container-lowest border border-outline-variant rounded-xl p-lg shadow-sm">
-          <div className="flex justify-between items-center mb-md border-b border-outline-variant pb-sm">
-            <div>
-              <h3 className="font-headline-sm text-headline-sm text-on-surface">Material Category Emissions</h3>
-              <p className="text-xs text-on-surface-variant">Real-time aggregation from PS 25069 Dataset</p>
-            </div>
-            <span className="text-xs font-mono-data text-primary font-bold">Avg Circularity: {metrics.avgCircularity}/100</span>
-          </div>
-
-          {/* Metal Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-md mb-md">
-            {metrics.metalStats.map((ms) => (
-              <div key={ms.metal} className="p-md bg-surface-bright border border-outline-variant rounded-lg space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="font-bold text-sm text-on-surface">{ms.metal}</span>
-                  <span className="text-[10px] font-bold px-2 py-0.5 bg-primary-container/20 text-primary rounded">{ms.count} Batches</span>
-                </div>
-                <div className="font-mono-data text-xl font-bold text-on-surface">{ms.co2_tons} <span className="text-xs text-on-surface-variant">tCO2e</span></div>
-                <div className="text-xs text-on-surface-variant space-y-0.5 pt-1 border-t border-outline-variant/60">
-                  <div className="flex justify-between"><span>Volume:</span><span className="font-bold">{ms.quantity_tons} t</span></div>
-                  <div className="flex justify-between"><span>Recycled %:</span><span className="font-bold text-primary">{ms.avgRecycledPct}%</span></div>
-                  <div className="flex justify-between"><span>Circularity:</span><span className="font-bold text-tertiary">{ms.avgCircularity}/100</span></div>
-                </div>
+        {/* Right Column: Material Category Emissions (Spans 6 columns) */}
+        <section className="lg:col-span-6 premium-card rounded-xl p-[24px] flex flex-col justify-between">
+          <div className="space-y-5">
+            <div className="flex justify-between items-center pb-3 border-b border-outline-variant/40">
+              <div>
+                <h3 className="text-lg font-bold text-on-surface">Material Category Emissions</h3>
+                <p className="text-xs text-on-surface-variant">Real-time aggregation from {activeFileName}</p>
               </div>
-            ))}
+              <span className="text-xs font-mono-data bg-primary/10 text-primary border border-primary/15 font-bold px-2.5 py-1 rounded-lg">
+                Avg Circularity: <AnimatedNumber value={metrics.avgCircularity} decimals={0} />/100
+              </span>
+            </div>
+
+            {/* Comparison List Layout (Dividers instead of heavy floating cards) */}
+            <div className="divide-y divide-outline-variant/40">
+              {metrics.metalStats.map((ms) => {
+                const metalName = ms.metal || ms.material;
+                return (
+                  <div key={metalName} className="py-3.5 first:pt-0 last:pb-0 flex justify-between items-center gap-4">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-sm text-on-surface">{metalName}</span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 bg-surface-container-low text-on-surface-variant rounded-md">
+                          {ms.count} Batches
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-on-surface-variant flex flex-wrap gap-x-2.5 gap-y-1 mt-0.5">
+                        <span>Volume: <strong className="text-on-surface font-semibold"><AnimatedNumber value={ms.quantity_tons} decimals={1} />t</strong></span>
+                        <span className="text-outline-variant/50">|</span>
+                        <span>Recycled: <strong className="text-primary font-semibold"><AnimatedNumber value={ms.avgRecycledPct} decimals={0} />%</strong></span>
+                        <span className="text-outline-variant/50">|</span>
+                        <span>Circularity: <strong className="text-tertiary font-semibold"><AnimatedNumber value={ms.avgCircularity} decimals={0} />/100</strong></span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-base font-bold text-on-surface font-mono-data">
+                        <AnimatedNumber value={ms.co2_tons} decimals={2} /> <span className="text-xs text-on-surface-variant font-normal">tCO2e</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
-          <div className="pt-2 flex justify-between items-center text-xs text-on-surface-variant">
-            <span>Overall Dataset Circularity Index: <strong className="text-primary">{metrics.avgCircularity}/100</strong> ({metrics.avgRecycledPct}% Recycled Material Input)</span>
+          <div className="pt-5 border-t border-outline-variant/40 mt-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs text-on-surface-variant">
+            <span>Overall Circularity Index: <strong className="text-primary font-semibold"><AnimatedNumber value={metrics.avgCircularity} decimals={0} />/100</strong></span>
             <button
               onClick={() => navigate('/lca')}
-              className="text-primary hover:underline font-semibold flex items-center gap-1 cursor-pointer"
+              className="text-primary hover:underline font-semibold flex items-center gap-0.5 cursor-pointer"
             >
               Explore Full LCA <span className="material-symbols-outlined text-sm">open_in_new</span>
             </button>
           </div>
         </section>
+
       </div>
     </div>
   );

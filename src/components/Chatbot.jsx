@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
 export default function Chatbot() {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false); // Closed by default to reduce visual noise on load
   const [messages, setMessages] = useState([
     {
       sender: 'assistant',
@@ -44,44 +44,43 @@ export default function Chatbot() {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 bg-primary text-on-primary p-4 rounded-full shadow-lg hover:bg-primary-fixed-variant transition-all z-50 flex items-center gap-2 group"
+        className="fixed bottom-6 right-6 bg-primary text-on-primary p-3 rounded-full shadow hover:shadow-md hover:scale-105 active:scale-97 transition-all duration-200 z-50 flex items-center justify-center w-12 h-12 cursor-pointer"
         title="Open Eco Assistant"
       >
         <span className="material-symbols-outlined text-2xl" data-weight="fill">smart_toy</span>
-        <span className="font-semibold text-sm pr-1">Eco Assistant</span>
       </button>
     );
   }
 
   return (
-    <div className="fixed bottom-6 right-6 w-80 md:w-96 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-2xl flex flex-col z-50 overflow-hidden transition-all duration-300">
+    <div className="fixed bottom-6 right-6 w-80 bg-surface-container-lowest border border-outline-variant/60 rounded-xl shadow-lg flex flex-col z-50 overflow-hidden transition-all duration-300">
       {/* Header */}
-      <div className="bg-surface-container-high px-4 py-3 flex justify-between items-center border-b border-outline-variant">
+      <div className="bg-surface-container-high px-4 py-2.5 flex justify-between items-center border-b border-outline-variant/60">
         <div className="flex items-center gap-2 text-on-surface">
-          <span className="material-symbols-outlined text-primary text-xl" data-weight="fill">smart_toy</span>
-          <span className="font-label-md text-sm font-bold">Eco Assistant</span>
-          <span className="text-[10px] bg-primary-container text-on-primary font-bold px-2 py-0.5 rounded-full uppercase">AI Active</span>
+          <span className="material-symbols-outlined text-primary text-lg" data-weight="fill">smart_toy</span>
+          <span className="text-xs font-bold text-on-surface">Eco Assistant</span>
+          <span className="text-[9px] bg-primary/10 text-primary border border-primary/20 font-bold px-2 py-0.5 rounded-full uppercase">AI</span>
         </div>
         <button
           onClick={() => setIsOpen(false)}
-          className="text-on-surface-variant hover:text-on-surface p-1 rounded hover:bg-surface-container-low transition-colors"
+          className="text-on-surface-variant hover:text-on-surface p-1 rounded hover:bg-surface-container-low transition-colors cursor-pointer"
         >
-          <span className="material-symbols-outlined text-lg">close</span>
+          <span className="material-symbols-outlined text-base">close</span>
         </button>
       </div>
 
       {/* Chat Messages */}
-      <div className="p-4 h-64 overflow-y-auto space-y-3 bg-surface-bright text-sm">
+      <div className="p-4 h-60 overflow-y-auto space-y-3 bg-surface-bright/70 text-xs">
         {messages.map((msg, i) => (
           <div
             key={i}
             className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             <div
-              className={`max-w-[85%] px-3.5 py-2 rounded-lg text-xs leading-relaxed ${
+              className={`max-w-[85%] px-3 py-2 rounded-lg text-xs leading-relaxed ${
                 msg.sender === 'user'
-                  ? 'bg-primary text-on-primary rounded-br-none'
-                  : 'bg-surface-container-lowest border border-outline-variant text-on-surface rounded-bl-none shadow-sm'
+                  ? 'bg-primary text-on-primary rounded-br-none shadow-sm'
+                  : 'bg-surface-container-lowest border border-outline-variant/60 text-on-surface rounded-bl-none shadow-sm'
               }`}
             >
               {msg.text}
@@ -91,17 +90,17 @@ export default function Chatbot() {
       </div>
 
       {/* Input Form */}
-      <form onSubmit={handleSend} className="p-2 border-t border-outline-variant bg-surface-container-lowest flex gap-2">
+      <form onSubmit={handleSend} className="p-2 border-t border-outline-variant/60 bg-surface-container-lowest flex gap-1.5">
         <input
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Ask Eco Assistant..."
-          className="flex-1 bg-surface border border-outline-variant rounded-md px-3 py-1.5 text-xs text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+          className="flex-1 bg-surface-container-low border border-outline-variant/50 rounded-lg px-3 py-1.5 text-xs text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-inner"
         />
         <button
           type="submit"
-          className="bg-primary text-on-primary px-3 py-1.5 rounded-md hover:bg-primary-fixed-variant text-xs font-semibold flex items-center justify-center transition-colors"
+          className="bg-primary text-on-primary px-3 py-1.5 rounded-lg hover:bg-primary/95 text-xs font-semibold flex items-center justify-center transition-colors cursor-pointer active:scale-95"
         >
           <span className="material-symbols-outlined text-sm">send</span>
         </button>

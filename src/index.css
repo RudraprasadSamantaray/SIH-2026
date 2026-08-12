@@ -49,7 +49,7 @@
   --color-on-tertiary-fixed-variant: #004395;
   --color-on-tertiary: #ffffff;
 
-  --width-sidebar_width: 260px;
+  --width-sidebar_width: 240px;
 }
 
 /* Custom Spacing & Utility Aliases */
@@ -79,9 +79,10 @@
 .p-gutter { padding: 24px; }
 
 body {
-  background-color: #f8f9ff;
-  color: #121c2a;
+  background-color: #f8f9fa; /* Sleek light warm/neutral gray background */
+  color: #1a2530; /* Dark charcoal text */
   font-family: 'Inter', sans-serif;
+  overflow-x: hidden;
 }
 
 .material-symbols-outlined {
@@ -93,10 +94,69 @@ body {
 }
 
 .upload-dashed-border {
-  background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='4' ry='4' stroke='%23bccbb9' stroke-width='2' stroke-dasharray='8%2c 8' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e");
-  border-radius: 4px;
+  background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='12' ry='12' stroke='%23bccbb9' stroke-width='2' stroke-dasharray='8%2c 8' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e");
+  border-radius: 12px;
 }
 
 .upload-dashed-border.dragover {
-  background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='4' ry='4' stroke='%2322c55e' stroke-width='2' stroke-dasharray='8%2c 8' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e");
+  background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='12' ry='12' stroke='%23006e2f' stroke-width='2' stroke-dasharray='8%2c 8' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e");
 }
+
+/* Premium Light SaaS Visual Definitions */
+.premium-card {
+  background-color: #ffffff;
+  border: 1px solid rgba(26, 37, 48, 0.05); /* Extremely soft border */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.015); /* Reduced shadow intensity by ~70% */
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.premium-card:hover {
+  transform: translateY(-1px); /* Extremely subtle hover lift */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03); /* Subtle soft hover shadow */
+}
+
+/* Page transitions & element entries */
+.animate-fade-in-up {
+  animation: fadeInUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Smooth page transitions */
+.page-transition-wrap {
+  animation: pageFadeSlide 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes pageFadeSlide {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Sidebar navigation link transition */
+.sidebar-link-indicator {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar-icon-anim {
+  transition: transform 0.2s ease;
+}
+
+.sidebar-link-hover:hover .sidebar-icon-anim {
+  transform: scale(1.1);
+}
+

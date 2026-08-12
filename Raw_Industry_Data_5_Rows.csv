@@ -1,0 +1,6 @@
+Date,Plant,Material,Product,Production (kg),Electricity (kWh),Water (L),Virgin Material (kg),Recycled Material (kg),Fuel (L),Transport (km),Waste/Loss (kg),Recovered Material (kg)
+01-05-75,Plant A-12,Aluminium,Aluminium Sheet,12600,62000,780000,8480,3600,4260,370,698,518
+02-05-75,Plant A-12,Aluminium,Aluminium Sheet,12300,57500,300000,8750,3750,4310,370,625,531
+03-05-75,Plant A-12,Aluminium,Aluminium Sheet,11800,59000,780000,8760,3540,4100,340,580,507
+04-05-75,Plant A-12,Aluminium,Aluminium Sheet,12300,61500,780000,8010,3690,4250,330,615,573
+05-05-75,Plant A-12,Aluminium,Aluminium Sheet,12700,63500,300000,8880,3810,4450,330,633,549

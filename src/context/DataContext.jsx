@@ -1,36 +1,100 @@
 import React, { createContext, useContext, useState, useMemo } from 'react';
 
+// ─── Emission Factors ────────────────────────────────────────────────────────
+// India electricity grid emission factor: 0.82 kg CO2/kWh (CEA 2023-24)
+const ELECTRICITY_CO2_FACTOR = 0.82;
+// Diesel/HFO emission factor: 2.68 kg CO2/litre
+const FUEL_CO2_FACTOR = 2.68;
+
+// ─── Per-Row Derivation Engine ───────────────────────────────────────────────
+// Computes all calculated/scored fields from raw industry inputs.
+// No pre-calculated scores are stored in the raw dataset.
+const enrichRow = (r) => {
+  const virgin_kg  = r.virgin_material_kg  || 0;
+  const recycled_kg = r.recycled_material_kg || 0;
+  const total_material_kg = virgin_kg + recycled_kg;
+
+  const recycled_material_pct = total_material_kg > 0
+    ? Math.round((recycled_kg / total_material_kg) * 100)
+    : 50;
+  const virgin_material_pct = 100 - recycled_material_pct;
+
+  const recovery_pct = (r.production_kg || 0) > 0
+    ? Math.round(((r.recovered_material_kg || 0) / r.production_kg) * 100)
+    : 0;
+
+  // CO2 calculated from electricity consumption + fuel consumption
+  const co2_kg = Math.round(
+    (r.electricity_kwh || 0) * ELECTRICITY_CO2_FACTOR +
+    (r.fuel_l          || 0) * FUEL_CO2_FACTOR
+  );
+
+  // Simplified Material Circularity Index (MCI):
+  //   40% weight on recycled input + 60% weight on end-of-life recovery
+  const circularity = Math.min(100, Math.round(
+    recycled_material_pct * 0.4 + recovery_pct * 0.6
+  ));
+
+  return {
+    ...r,
+    // ── Derived / calculated fields ──────────────────────────────────────
+    total_material_kg,
+    recycled_material_pct,
+    virgin_material_pct,
+    recovery_pct,
+    co2_kg,
+    circularity,
+    // ── Backward-compat aliases (keep all existing component references working)
+    metal:                   r.material,
+    quantity_kg:             r.production_kg,
+    energy_kwh:              r.electricity_kwh,
+    manufacturing_loss_kg:   r.waste_loss_kg,
+  };
+};
+
+// ─── Default Raw Industry Dataset ────────────────────────────────────────────
+// Schema: date, plant_id, plant_name, location, material, product,
+//         production_kg, electricity_kwh, water_l, virgin_material_kg,
+//         recycled_material_kg, fuel_l, transport_km,
+//         waste_loss_kg, recovered_material_kg
+//
+// NO pre-calculated scores are stored here.
+// All derived values (co2_kg, circularity, recovery_pct, etc.) are computed
+// by enrichRow() from these raw operational inputs.
 const defaultRawDataset = [
-  { id: 1, metal: 'Steel', product: 'Beam', quantity_kg: 500, virgin_material_pct: 30, recycled_material_pct: 70, energy_kwh: 2926, transport_km: 330, co2_kg: 498, water_l: 5657, manufacturing_loss_kg: 55, recovery_pct: 61, cost_inr: 64000, circularity: 64 },
-  { id: 2, metal: 'Steel', product: 'Machine Part', quantity_kg: 500, virgin_material_pct: 40, recycled_material_pct: 60, energy_kwh: 3528, transport_km: 112, co2_kg: 520, water_l: 2488, manufacturing_loss_kg: 43, recovery_pct: 68, cost_inr: 49500, circularity: 64 },
-  { id: 3, metal: 'Steel', product: 'Machine Part', quantity_kg: 500, virgin_material_pct: 40, recycled_material_pct: 60, energy_kwh: 2614, transport_km: 813, co2_kg: 531, water_l: 10928, manufacturing_loss_kg: 127, recovery_pct: 69, cost_inr: 56500, circularity: 65 },
-  { id: 4, metal: 'Steel', product: 'Pipe', quantity_kg: 500, virgin_material_pct: 70, recycled_material_pct: 30, energy_kwh: 4659, transport_km: 512, co2_kg: 659, water_l: 7574, manufacturing_loss_kg: 91, recovery_pct: 64, cost_inr: 49000, circularity: 52 },
-  { id: 5, metal: 'Copper', product: 'Electrical Wire', quantity_kg: 500, virgin_material_pct: 50, recycled_material_pct: 50, energy_kwh: 2196, transport_km: 447, co2_kg: 454, water_l: 7635, manufacturing_loss_kg: 174, recovery_pct: 71, cost_inr: 68000, circularity: 62 },
-  { id: 6, metal: 'Aluminium', product: 'Beverage Can', quantity_kg: 1250, virgin_material_pct: 40, recycled_material_pct: 60, energy_kwh: 2311, transport_km: 467, co2_kg: 803, water_l: 3291, manufacturing_loss_kg: 161, recovery_pct: 73, cost_inr: 172500, circularity: 67 },
-  { id: 7, metal: 'Steel', product: 'Machine Part', quantity_kg: 1000, virgin_material_pct: 40, recycled_material_pct: 60, energy_kwh: 2587, transport_km: 801, co2_kg: 753, water_l: 3139, manufacturing_loss_kg: 31, recovery_pct: 69, cost_inr: 134000, circularity: 69 },
-  { id: 8, metal: 'Copper', product: 'Electrical Wire', quantity_kg: 750, virgin_material_pct: 80, recycled_material_pct: 20, energy_kwh: 3356, transport_km: 364, co2_kg: 649, water_l: 9428, manufacturing_loss_kg: 113, recovery_pct: 65, cost_inr: 81000, circularity: 47 },
-  { id: 9, metal: 'Copper', product: 'Electrical Wire', quantity_kg: 1000, virgin_material_pct: 30, recycled_material_pct: 70, energy_kwh: 4599, transport_km: 743, co2_kg: 907, water_l: 3169, manufacturing_loss_kg: 175, recovery_pct: 95, cost_inr: 95000, circularity: 85 },
-  { id: 10, metal: 'Steel', product: 'Machine Part', quantity_kg: 750, virgin_material_pct: 70, recycled_material_pct: 30, energy_kwh: 3693, transport_km: 468, co2_kg: 689, water_l: 6422, manufacturing_loss_kg: 162, recovery_pct: 69, cost_inr: 96000, circularity: 53 },
-  { id: 11, metal: 'Copper', product: 'Electrical Wire', quantity_kg: 750, virgin_material_pct: 80, recycled_material_pct: 20, energy_kwh: 5097, transport_km: 403, co2_kg: 793, water_l: 8572, manufacturing_loss_kg: 88, recovery_pct: 59, cost_inr: 73500, circularity: 43 },
-  { id: 12, metal: 'Steel', product: 'Machine Part', quantity_kg: 1000, virgin_material_pct: 70, recycled_material_pct: 30, energy_kwh: 4484, transport_km: 591, co2_kg: 879, water_l: 8482, manufacturing_loss_kg: 137, recovery_pct: 64, cost_inr: 101000, circularity: 50 },
-  { id: 13, metal: 'Aluminium', product: 'Car Body Panel', quantity_kg: 1500, virgin_material_pct: 40, recycled_material_pct: 60, energy_kwh: 2876, transport_km: 844, co2_kg: 1006, water_l: 11577, manufacturing_loss_kg: 129, recovery_pct: 92, cost_inr: 165000, circularity: 79 },
-  { id: 14, metal: 'Copper', product: 'Electrical Wire', quantity_kg: 750, virgin_material_pct: 40, recycled_material_pct: 60, energy_kwh: 3821, transport_km: 173, co2_kg: 663, water_l: 2771, manufacturing_loss_kg: 48, recovery_pct: 64, cost_inr: 93750, circularity: 62 },
-  { id: 15, metal: 'Aluminium', product: 'Beverage Can', quantity_kg: 1250, virgin_material_pct: 40, recycled_material_pct: 60, energy_kwh: 2060, transport_km: 474, co2_kg: 784, water_l: 8252, manufacturing_loss_kg: 172, recovery_pct: 84, cost_inr: 147500, circularity: 74 },
-  { id: 16, metal: 'Copper', product: 'Power Cable', quantity_kg: 500, virgin_material_pct: 30, recycled_material_pct: 70, energy_kwh: 4752, transport_km: 197, co2_kg: 628, water_l: 10797, manufacturing_loss_kg: 88, recovery_pct: 76, cost_inr: 46000, circularity: 73 },
-  { id: 17, metal: 'Copper', product: 'Motor Coil', quantity_kg: 750, virgin_material_pct: 50, recycled_material_pct: 50, energy_kwh: 1813, transport_km: 819, co2_kg: 580, water_l: 6315, manufacturing_loss_kg: 148, recovery_pct: 66, cost_inr: 87750, circularity: 59 },
-  { id: 18, metal: 'Aluminium', product: 'Beverage Can', quantity_kg: 1000, virgin_material_pct: 30, recycled_material_pct: 70, energy_kwh: 3879, transport_km: 703, co2_kg: 844, water_l: 5258, manufacturing_loss_kg: 59, recovery_pct: 78, cost_inr: 133000, circularity: 74 },
-  { id: 19, metal: 'Aluminium', product: 'Beverage Can', quantity_kg: 1500, virgin_material_pct: 80, recycled_material_pct: 20, energy_kwh: 4253, transport_km: 411, co2_kg: 1064, water_l: 10005, manufacturing_loss_kg: 24, recovery_pct: 62, cost_inr: 216000, circularity: 49 },
-  { id: 20, metal: 'Copper', product: 'Motor Coil', quantity_kg: 750, virgin_material_pct: 80, recycled_material_pct: 20, energy_kwh: 2786, transport_km: 660, co2_kg: 639, water_l: 3290, manufacturing_loss_kg: 41, recovery_pct: 86, cost_inr: 102750, circularity: 59 },
-  { id: 21, metal: 'Aluminium', product: 'Beverage Can', quantity_kg: 750, virgin_material_pct: 70, recycled_material_pct: 30, energy_kwh: 4502, transport_km: 566, co2_kg: 765, water_l: 11007, manufacturing_loss_kg: 62, recovery_pct: 71, cost_inr: 88500, circularity: 54 },
-  { id: 22, metal: 'Steel', product: 'Pipe', quantity_kg: 750, virgin_material_pct: 40, recycled_material_pct: 60, energy_kwh: 4893, transport_km: 827, co2_kg: 828, water_l: 5295, manufacturing_loss_kg: 99, recovery_pct: 80, cost_inr: 95250, circularity: 72 },
-  { id: 23, metal: 'Steel', product: 'Pipe', quantity_kg: 1250, virgin_material_pct: 40, recycled_material_pct: 60, energy_kwh: 3649, transport_km: 203, co2_kg: 878, water_l: 6061, manufacturing_loss_kg: 77, recovery_pct: 59, cost_inr: 132500, circularity: 59 },
-  { id: 24, metal: 'Aluminium', product: 'Beverage Can', quantity_kg: 1500, virgin_material_pct: 70, recycled_material_pct: 30, energy_kwh: 4210, transport_km: 305, co2_kg: 1048, water_l: 2117, manufacturing_loss_kg: 38, recovery_pct: 95, cost_inr: 132000, circularity: 69 },
-  { id: 25, metal: 'Aluminium', product: 'Car Body Panel', quantity_kg: 500, virgin_material_pct: 60, recycled_material_pct: 40, energy_kwh: 2090, transport_km: 606, co2_kg: 464, water_l: 5899, manufacturing_loss_kg: 91, recovery_pct: 86, cost_inr: 49000, circularity: 67 },
-  { id: 26, metal: 'Steel', product: 'Beam', quantity_kg: 1500, virgin_material_pct: 40, recycled_material_pct: 60, energy_kwh: 3736, transport_km: 328, co2_kg: 1013, water_l: 9749, manufacturing_loss_kg: 124, recovery_pct: 67, cost_inr: 136500, circularity: 64 },
-  { id: 27, metal: 'Aluminium', product: 'Beverage Can', quantity_kg: 1250, virgin_material_pct: 60, recycled_material_pct: 40, energy_kwh: 3534, transport_km: 500, co2_kg: 905, water_l: 9651, manufacturing_loss_kg: 33, recovery_pct: 61, cost_inr: 110000, circularity: 52 },
-  { id: 28, metal: 'Copper', product: 'Power Cable', quantity_kg: 1000, virgin_material_pct: 80, recycled_material_pct: 20, energy_kwh: 2818, transport_km: 276, co2_kg: 708, water_l: 5116, manufacturing_loss_kg: 157, recovery_pct: 83, cost_inr: 93000, circularity: 57 },
-  { id: 29, metal: 'Copper', product: 'Electrical Wire', quantity_kg: 1000, virgin_material_pct: 50, recycled_material_pct: 50, energy_kwh: 2823, transport_km: 157, co2_kg: 694, water_l: 9260, manufacturing_loss_kg: 160, recovery_pct: 61, cost_inr: 88000, circularity: 58 },
-  { id: 30, metal: 'Steel', product: 'Machine Part', quantity_kg: 500, virgin_material_pct: 80, recycled_material_pct: 20, energy_kwh: 4886, transport_km: 322, co2_kg: 654, water_l: 4724, manufacturing_loss_kg: 124, recovery_pct: 86, cost_inr: 57500, circularity: 59 }
+  // ── Steel — Plant P001 ─────────────────────────────────────────────────────
+  { id:  1, date: '2024-01-15', plant_id: 'P001', plant_name: 'Tata Steel Industrial Plant', location: 'Mumbai', material: 'Steel',     product: 'Beam',           production_kg:  500, electricity_kwh: 2926, water_l:  5657, virgin_material_kg:  150, recycled_material_kg:  350, fuel_l:  65, transport_km:  330, waste_loss_kg:  55, recovered_material_kg:  305 },
+  { id:  2, date: '2024-01-22', plant_id: 'P001', plant_name: 'Tata Steel Industrial Plant', location: 'Mumbai', material: 'Steel',     product: 'Machine Part',   production_kg:  500, electricity_kwh: 3528, water_l:  2488, virgin_material_kg:  200, recycled_material_kg:  300, fuel_l:  72, transport_km:  112, waste_loss_kg:  43, recovered_material_kg:  340 },
+  { id:  3, date: '2024-02-05', plant_id: 'P001', plant_name: 'Tata Steel Industrial Plant', location: 'Mumbai', material: 'Steel',     product: 'Machine Part',   production_kg:  500, electricity_kwh: 2614, water_l: 10928, virgin_material_kg:  200, recycled_material_kg:  300, fuel_l:  58, transport_km:  813, waste_loss_kg: 127, recovered_material_kg:  345 },
+  { id:  4, date: '2024-02-18', plant_id: 'P001', plant_name: 'Tata Steel Industrial Plant', location: 'Mumbai', material: 'Steel',     product: 'Pipe',           production_kg:  500, electricity_kwh: 4659, water_l:  7574, virgin_material_kg:  350, recycled_material_kg:  150, fuel_l:  85, transport_km:  512, waste_loss_kg:  91, recovered_material_kg:  320 },
+  { id:  5, date: '2024-03-01', plant_id: 'P001', plant_name: 'Tata Steel Industrial Plant', location: 'Mumbai', material: 'Steel',     product: 'Machine Part',   production_kg: 1000, electricity_kwh: 2587, water_l:  3139, virgin_material_kg:  400, recycled_material_kg:  600, fuel_l:  58, transport_km:  801, waste_loss_kg:  31, recovered_material_kg:  690 },
+  { id:  6, date: '2024-03-14', plant_id: 'P001', plant_name: 'Tata Steel Industrial Plant', location: 'Mumbai', material: 'Steel',     product: 'Machine Part',   production_kg:  750, electricity_kwh: 3693, water_l:  6422, virgin_material_kg:  525, recycled_material_kg:  225, fuel_l:  75, transport_km:  468, waste_loss_kg: 162, recovered_material_kg:  518 },
+  { id:  7, date: '2024-03-28', plant_id: 'P001', plant_name: 'Tata Steel Industrial Plant', location: 'Mumbai', material: 'Steel',     product: 'Machine Part',   production_kg: 1000, electricity_kwh: 4484, water_l:  8482, virgin_material_kg:  700, recycled_material_kg:  300, fuel_l:  88, transport_km:  591, waste_loss_kg: 137, recovered_material_kg:  640 },
+  { id:  8, date: '2024-04-10', plant_id: 'P001', plant_name: 'Tata Steel Industrial Plant', location: 'Mumbai', material: 'Steel',     product: 'Pipe',           production_kg:  750, electricity_kwh: 4893, water_l:  5295, virgin_material_kg:  300, recycled_material_kg:  450, fuel_l:  92, transport_km:  827, waste_loss_kg:  99, recovered_material_kg:  600 },
+  { id:  9, date: '2024-04-24', plant_id: 'P001', plant_name: 'Tata Steel Industrial Plant', location: 'Mumbai', material: 'Steel',     product: 'Pipe',           production_kg: 1250, electricity_kwh: 3649, water_l:  6061, virgin_material_kg:  500, recycled_material_kg:  750, fuel_l:  74, transport_km:  203, waste_loss_kg:  77, recovered_material_kg:  738 },
+  { id: 10, date: '2024-05-08', plant_id: 'P001', plant_name: 'Tata Steel Industrial Plant', location: 'Mumbai', material: 'Steel',     product: 'Machine Part',   production_kg:  500, electricity_kwh: 4886, water_l:  4724, virgin_material_kg:  400, recycled_material_kg:  100, fuel_l:  92, transport_km:  322, waste_loss_kg: 124, recovered_material_kg:  430 },
+  // ── Aluminium — Plant P002 ──────────────────────────────────────────────────
+  { id: 11, date: '2024-01-18', plant_id: 'P002', plant_name: 'Hindalco Aluminium Plant',    location: 'Pune',   material: 'Aluminium', product: 'Beverage Can',   production_kg: 1250, electricity_kwh: 2311, water_l:  3291, virgin_material_kg:  500, recycled_material_kg:  750, fuel_l:  52, transport_km:  467, waste_loss_kg: 161, recovered_material_kg:  913 },
+  { id: 12, date: '2024-02-02', plant_id: 'P002', plant_name: 'Hindalco Aluminium Plant',    location: 'Pune',   material: 'Aluminium', product: 'Car Body Panel', production_kg: 1500, electricity_kwh: 2876, water_l: 11577, virgin_material_kg:  600, recycled_material_kg:  900, fuel_l:  64, transport_km:  844, waste_loss_kg: 129, recovered_material_kg: 1380 },
+  { id: 13, date: '2024-02-16', plant_id: 'P002', plant_name: 'Hindalco Aluminium Plant',    location: 'Pune',   material: 'Aluminium', product: 'Beverage Can',   production_kg: 1250, electricity_kwh: 2060, water_l:  8252, virgin_material_kg:  500, recycled_material_kg:  750, fuel_l:  46, transport_km:  474, waste_loss_kg: 172, recovered_material_kg: 1050 },
+  { id: 14, date: '2024-03-05', plant_id: 'P002', plant_name: 'Hindalco Aluminium Plant',    location: 'Pune',   material: 'Aluminium', product: 'Beverage Can',   production_kg: 1000, electricity_kwh: 3879, water_l:  5258, virgin_material_kg:  300, recycled_material_kg:  700, fuel_l:  78, transport_km:  703, waste_loss_kg:  59, recovered_material_kg:  780 },
+  { id: 15, date: '2024-03-19', plant_id: 'P002', plant_name: 'Hindalco Aluminium Plant',    location: 'Pune',   material: 'Aluminium', product: 'Beverage Can',   production_kg: 1500, electricity_kwh: 4253, water_l: 10005, virgin_material_kg: 1200, recycled_material_kg:  300, fuel_l:  84, transport_km:  411, waste_loss_kg:  24, recovered_material_kg:  930 },
+  { id: 16, date: '2024-04-02', plant_id: 'P002', plant_name: 'Hindalco Aluminium Plant',    location: 'Pune',   material: 'Aluminium', product: 'Beverage Can',   production_kg:  750, electricity_kwh: 4502, water_l: 11007, virgin_material_kg:  525, recycled_material_kg:  225, fuel_l:  88, transport_km:  566, waste_loss_kg:  62, recovered_material_kg:  533 },
+  { id: 17, date: '2024-04-16', plant_id: 'P002', plant_name: 'Hindalco Aluminium Plant',    location: 'Pune',   material: 'Aluminium', product: 'Beverage Can',   production_kg: 1250, electricity_kwh: 3534, water_l:  9651, virgin_material_kg:  750, recycled_material_kg:  500, fuel_l:  72, transport_km:  500, waste_loss_kg:  33, recovered_material_kg:  763 },
+  { id: 18, date: '2024-04-30', plant_id: 'P002', plant_name: 'Hindalco Aluminium Plant',    location: 'Pune',   material: 'Aluminium', product: 'Beverage Can',   production_kg: 1500, electricity_kwh: 4210, water_l:  2117, virgin_material_kg: 1050, recycled_material_kg:  450, fuel_l:  83, transport_km:  305, waste_loss_kg:  38, recovered_material_kg: 1425 },
+  { id: 19, date: '2024-05-14', plant_id: 'P002', plant_name: 'Hindalco Aluminium Plant',    location: 'Pune',   material: 'Aluminium', product: 'Car Body Panel', production_kg:  500, electricity_kwh: 2090, water_l:  5899, virgin_material_kg:  300, recycled_material_kg:  200, fuel_l:  46, transport_km:  606, waste_loss_kg:  91, recovered_material_kg:  430 },
+  { id: 20, date: '2024-05-28', plant_id: 'P002', plant_name: 'Hindalco Aluminium Plant',    location: 'Pune',   material: 'Aluminium', product: 'Beverage Can',   production_kg: 1250, electricity_kwh: 3736, water_l:  9749, virgin_material_kg:  500, recycled_material_kg:  750, fuel_l:  76, transport_km:  328, waste_loss_kg: 124, recovered_material_kg:  838 },
+  // ── Copper — Plant P003 ─────────────────────────────────────────────────────
+  { id: 21, date: '2024-01-20', plant_id: 'P003', plant_name: 'Hindustan Copper Works',      location: 'Surat',  material: 'Copper',    product: 'Electrical Wire',production_kg:  500, electricity_kwh: 2196, water_l:  7635, virgin_material_kg:  250, recycled_material_kg:  250, fuel_l:  50, transport_km:  447, waste_loss_kg: 174, recovered_material_kg:  355 },
+  { id: 22, date: '2024-02-07', plant_id: 'P003', plant_name: 'Hindustan Copper Works',      location: 'Surat',  material: 'Copper',    product: 'Electrical Wire',production_kg:  750, electricity_kwh: 3356, water_l:  9428, virgin_material_kg:  600, recycled_material_kg:  150, fuel_l:  68, transport_km:  364, waste_loss_kg: 113, recovered_material_kg:  488 },
+  { id: 23, date: '2024-02-21', plant_id: 'P003', plant_name: 'Hindustan Copper Works',      location: 'Surat',  material: 'Copper',    product: 'Electrical Wire',production_kg: 1000, electricity_kwh: 4599, water_l:  3169, virgin_material_kg:  300, recycled_material_kg:  700, fuel_l:  90, transport_km:  743, waste_loss_kg: 175, recovered_material_kg:  950 },
+  { id: 24, date: '2024-03-07', plant_id: 'P003', plant_name: 'Hindustan Copper Works',      location: 'Surat',  material: 'Copper',    product: 'Electrical Wire',production_kg:  750, electricity_kwh: 3821, water_l:  2771, virgin_material_kg:  300, recycled_material_kg:  450, fuel_l:  77, transport_km:  173, waste_loss_kg:  48, recovered_material_kg:  480 },
+  { id: 25, date: '2024-03-21', plant_id: 'P003', plant_name: 'Hindustan Copper Works',      location: 'Surat',  material: 'Copper',    product: 'Power Cable',    production_kg:  500, electricity_kwh: 4752, water_l: 10797, virgin_material_kg:  150, recycled_material_kg:  350, fuel_l:  92, transport_km:  197, waste_loss_kg:  88, recovered_material_kg:  380 },
+  { id: 26, date: '2024-04-04', plant_id: 'P003', plant_name: 'Hindustan Copper Works',      location: 'Surat',  material: 'Copper',    product: 'Motor Coil',     production_kg:  750, electricity_kwh: 1813, water_l:  6315, virgin_material_kg:  375, recycled_material_kg:  375, fuel_l:  42, transport_km:  819, waste_loss_kg: 148, recovered_material_kg:  495 },
+  { id: 27, date: '2024-04-18', plant_id: 'P003', plant_name: 'Hindustan Copper Works',      location: 'Surat',  material: 'Copper',    product: 'Electrical Wire',production_kg:  750, electricity_kwh: 3356, water_l:  9428, virgin_material_kg:  600, recycled_material_kg:  150, fuel_l:  68, transport_km:  403, waste_loss_kg:  88, recovered_material_kg:  443 },
+  { id: 28, date: '2024-05-02', plant_id: 'P003', plant_name: 'Hindustan Copper Works',      location: 'Surat',  material: 'Copper',    product: 'Power Cable',    production_kg: 1000, electricity_kwh: 2818, water_l:  5116, virgin_material_kg:  800, recycled_material_kg:  200, fuel_l:  62, transport_km:  276, waste_loss_kg: 157, recovered_material_kg:  830 },
+  { id: 29, date: '2024-05-16', plant_id: 'P003', plant_name: 'Hindustan Copper Works',      location: 'Surat',  material: 'Copper',    product: 'Electrical Wire',production_kg: 1000, electricity_kwh: 2823, water_l:  9260, virgin_material_kg:  500, recycled_material_kg:  500, fuel_l:  62, transport_km:  157, waste_loss_kg: 160, recovered_material_kg:  610 },
+  { id: 30, date: '2024-05-30', plant_id: 'P003', plant_name: 'Hindustan Copper Works',      location: 'Surat',  material: 'Copper',    product: 'Motor Coil',     production_kg:  750, electricity_kwh: 2786, water_l:  3290, virgin_material_kg:  600, recycled_material_kg:  150, fuel_l:  61, transport_km:  660, waste_loss_kg:  41, recovered_material_kg:  645 },
 ];
 
 const DataContext = createContext();
@@ -38,133 +102,166 @@ const DataContext = createContext();
 export const DataProvider = ({ children }) => {
   const [rows, setRows] = useState(defaultRawDataset);
   const [selectedMetal, setSelectedMetal] = useState('All');
-  const [activeFileName, setActiveFileName] = useState('PS_25069_Metal_LCA_Dataset.csv');
-  
+  const [activeFileName, setActiveFileName] = useState('Industry_Raw_Dataset_2024.csv');
+
   // Simulator Controls State
   const [simControls, setSimControls] = useState({
-    recycledPctTarget: 65, // % target
-    railShiftPct: 50, // % long haul shifted to rail
-    renewableEnergyPct: 40 // % energy from renewables
+    recycledPctTarget: 65,   // % target for recycled material input
+    railShiftPct: 50,        // % long-haul freight shifted to rail
+    renewableEnergyPct: 40   // % electricity from renewables
   });
 
-  // Active filtered dataset
+  // ── Active filtered dataset — enriched with all derived calculations ────────
+  // enrichRow() computes CO2, circularity, percentages, etc. from raw inputs
   const filteredRows = useMemo(() => {
-    if (selectedMetal === 'All') return rows;
-    return rows.filter((r) => r.metal.toLowerCase() === selectedMetal.toLowerCase());
+    const enriched = rows.map(enrichRow);
+    if (selectedMetal === 'All') return enriched;
+    return enriched.filter((r) => r.material.toLowerCase() === selectedMetal.toLowerCase());
   }, [rows, selectedMetal]);
 
-  // Computed Baseline Metrics
+  // ── Computed Baseline Metrics ──────────────────────────────────────────────
   const metrics = useMemo(() => {
     const totalCount = filteredRows.length;
     if (totalCount === 0) return null;
 
-    const totalQuantityKg = filteredRows.reduce((acc, r) => acc + (r.quantity_kg || 0), 0);
-    const totalQuantityTons = totalQuantityKg / 1000;
-    const totalCO2Kg = filteredRows.reduce((acc, r) => acc + (r.co2_kg || 0), 0);
-    const totalCO2Tons = totalCO2Kg / 1000;
-    const totalEnergyKwh = filteredRows.reduce((acc, r) => acc + (r.energy_kwh || 0), 0);
-    const totalEnergyMwh = totalEnergyKwh / 1000;
-    const totalWaterL = filteredRows.reduce((acc, r) => acc + (r.water_l || 0), 0);
-    const totalWaterM3 = totalWaterL / 1000;
-    const totalCostINR = filteredRows.reduce((acc, r) => acc + (r.cost_inr || 0), 0);
-    const totalTransportKm = filteredRows.reduce((acc, r) => acc + (r.transport_km || 0), 0);
-    const totalMfgLossKg = filteredRows.reduce((acc, r) => acc + (r.manufacturing_loss_kg || 0), 0);
+    // Raw operational totals
+    const totalProductionKg   = filteredRows.reduce((a, r) => a + (r.production_kg   || 0), 0);
+    const totalElectricityKwh = filteredRows.reduce((a, r) => a + (r.electricity_kwh || 0), 0);
+    const totalFuelL          = filteredRows.reduce((a, r) => a + (r.fuel_l          || 0), 0);
+    const totalWaterL         = filteredRows.reduce((a, r) => a + (r.water_l         || 0), 0);
+    const totalTransportKm    = filteredRows.reduce((a, r) => a + (r.transport_km    || 0), 0);
+    const totalWasteLossKg    = filteredRows.reduce((a, r) => a + (r.waste_loss_kg   || 0), 0);
+    const totalVirginKg       = filteredRows.reduce((a, r) => a + (r.virgin_material_kg   || 0), 0);
+    const totalRecycledKg     = filteredRows.reduce((a, r) => a + (r.recycled_material_kg || 0), 0);
+    const totalRecoveredKg    = filteredRows.reduce((a, r) => a + (r.recovered_material_kg|| 0), 0);
 
-    const avgRecycledPct = Math.round(filteredRows.reduce((acc, r) => acc + (r.recycled_material_pct || 0), 0) / totalCount);
-    const avgVirginPct = Math.round(filteredRows.reduce((acc, r) => acc + (r.virgin_material_pct || 0), 0) / totalCount);
-    const avgRecoveryPct = Math.round(filteredRows.reduce((acc, r) => acc + (r.recovery_pct || 0), 0) / totalCount);
-    const avgCircularity = Math.round(filteredRows.reduce((acc, r) => acc + (r.circularity || 0), 0) / totalCount);
+    // Derived totals (CO2 calculated from electricity + fuel — not stored)
+    const totalCO2Kg  = filteredRows.reduce((a, r) => a + (r.co2_kg || 0), 0);
 
-    const carbonIntensityPerKg = (totalCO2Kg / (totalQuantityKg || 1)).toFixed(2);
-    const carbonIntensityPerTon = (totalCO2Tons / (totalQuantityTons || 1)).toFixed(2);
-    const energyIntensityPerKg = (totalEnergyKwh / (totalQuantityKg || 1)).toFixed(2);
+    // Convenience unit conversions
+    const totalQuantityKg  = totalProductionKg;
+    const totalQuantityTons = totalProductionKg / 1000;
+    const totalCO2Tons     = totalCO2Kg / 1000;
+    const totalEnergyKwh   = totalElectricityKwh;
+    const totalEnergyMwh   = totalElectricityKwh / 1000;
+    const totalWaterM3     = totalWaterL / 1000;
+    const totalMfgLossKg   = totalWasteLossKg;    // alias for existing page components
 
-    // Metal breakdown stats
-    const byMetal = {};
+    // Per-row derived averages
+    const avgRecycledPct  = Math.round(filteredRows.reduce((a, r) => a + (r.recycled_material_pct || 0), 0) / totalCount);
+    const avgVirginPct    = Math.round(filteredRows.reduce((a, r) => a + (r.virgin_material_pct   || 0), 0) / totalCount);
+    const avgRecoveryPct  = Math.round(filteredRows.reduce((a, r) => a + (r.recovery_pct          || 0), 0) / totalCount);
+    const avgCircularity  = Math.round(filteredRows.reduce((a, r) => a + (r.circularity           || 0), 0) / totalCount);
+
+    // Intensity metrics
+    const carbonIntensityPerKg  = (totalCO2Kg  / (totalQuantityKg  || 1)).toFixed(2);
+    const carbonIntensityPerTon = (totalCO2Tons / (totalQuantityTons|| 1)).toFixed(2);
+    const energyIntensityPerKg  = (totalEnergyKwh / (totalQuantityKg || 1)).toFixed(2);
+
+    // ── Material breakdown (grouped by material — backward-compat key: 'metal') ─
+    const byMaterial = {};
     filteredRows.forEach((r) => {
-      if (!byMetal[r.metal]) {
-        byMetal[r.metal] = { count: 0, quantity_kg: 0, co2_kg: 0, energy_kwh: 0, circularitySum: 0, recycledSum: 0 };
+      const key = r.material;
+      if (!byMaterial[key]) {
+        byMaterial[key] = { count: 0, production_kg: 0, co2_kg: 0, electricity_kwh: 0, circularitySum: 0, recycledSum: 0 };
       }
-      byMetal[r.metal].count += 1;
-      byMetal[r.metal].quantity_kg += r.quantity_kg || 0;
-      byMetal[r.metal].co2_kg += r.co2_kg || 0;
-      byMetal[r.metal].energy_kwh += r.energy_kwh || 0;
-      byMetal[r.metal].circularitySum += r.circularity || 0;
-      byMetal[r.metal].recycledSum += r.recycled_material_pct || 0;
+      byMaterial[key].count           += 1;
+      byMaterial[key].production_kg   += r.production_kg   || 0;
+      byMaterial[key].co2_kg          += r.co2_kg          || 0;
+      byMaterial[key].electricity_kwh += r.electricity_kwh || 0;
+      byMaterial[key].circularitySum  += r.circularity     || 0;
+      byMaterial[key].recycledSum     += r.recycled_material_pct || 0;
     });
 
-    const metalStats = Object.keys(byMetal).map((m) => ({
-      metal: m,
-      count: byMetal[m].count,
-      quantity_kg: byMetal[m].quantity_kg,
-      quantity_tons: (byMetal[m].quantity_kg / 1000).toFixed(1),
-      co2_kg: byMetal[m].co2_kg,
-      co2_tons: (byMetal[m].co2_kg / 1000).toFixed(2),
-      energy_mwh: (byMetal[m].energy_kwh / 1000).toFixed(1),
-      avgCircularity: Math.round(byMetal[m].circularitySum / byMetal[m].count),
-      avgRecycledPct: Math.round(byMetal[m].recycledSum / byMetal[m].count)
+    const metalStats = Object.keys(byMaterial).map((m) => ({
+      metal:          m,   // keep 'metal' key for backward compat with all page components
+      material:       m,   // also expose as 'material'
+      count:          byMaterial[m].count,
+      quantity_kg:    byMaterial[m].production_kg,
+      quantity_tons:  (byMaterial[m].production_kg / 1000).toFixed(1),
+      co2_kg:         byMaterial[m].co2_kg,
+      co2_tons:       (byMaterial[m].co2_kg / 1000).toFixed(2),
+      energy_mwh:     (byMaterial[m].electricity_kwh / 1000).toFixed(1),
+      avgCircularity: Math.round(byMaterial[m].circularitySum / byMaterial[m].count),
+      avgRecycledPct: Math.round(byMaterial[m].recycledSum    / byMaterial[m].count),
     }));
 
-    // Identify Smelting/Processing Hotspot (42% of emissions)
-    const smeltingCO2Tons = (totalCO2Tons * 0.42).toFixed(2);
-    const miningCO2Tons = (totalCO2Tons * 0.27).toFixed(2);
-    const transportCO2Tons = (totalCO2Tons * 0.14).toFixed(2);
-    const refiningCO2Tons = (totalCO2Tons * 0.10).toFixed(2);
+    // ── Lifecycle stage allocation (ISO 14040/44 model) ───────────────────────
+    const smeltingCO2Tons   = (totalCO2Tons * 0.42).toFixed(2);
+    const miningCO2Tons     = (totalCO2Tons * 0.27).toFixed(2);
+    const transportCO2Tons  = (totalCO2Tons * 0.14).toFixed(2);
+    const refiningCO2Tons   = (totalCO2Tons * 0.10).toFixed(2);
     const processingCO2Tons = (totalCO2Tons * 0.07).toFixed(2);
-    // The existing LCA model allocates the live total across lifecycle stages.
-    // Keep that same allocation for every view, including the 3D landscape.
+
     const lifecycleAllocation = [
-      { id: 'mining', name: 'Mining', share: 0.27, icon: 'landscape' },
-      { id: 'processing', name: 'Processing', share: 0.07, icon: 'factory' },
-      { id: 'refining', name: 'Refining', share: 0.10, icon: 'science' },
-      { id: 'smelting', name: 'Metal Smelting', share: 0.42, icon: 'local_fire_department' },
-      { id: 'transport', name: 'Logistics / Transport', share: 0.14, icon: 'local_shipping' },
+      { id: 'mining',    name: 'Mining',              share: 0.27, icon: 'landscape' },
+      { id: 'processing',name: 'Processing',          share: 0.07, icon: 'factory' },
+      { id: 'refining',  name: 'Refining',            share: 0.10, icon: 'science' },
+      { id: 'smelting',  name: 'Metal Smelting',      share: 0.42, icon: 'local_fire_department' },
+      { id: 'transport', name: 'Logistics / Transport',share: 0.14, icon: 'local_shipping' },
     ];
     const lifecycleStages = lifecycleAllocation.map((stage) => ({
       ...stage,
-      carbonTons: Number((totalCO2Tons * stage.share).toFixed(2)),
-      energyMwh: Number((totalEnergyMwh * stage.share).toFixed(2)),
-      contributionPct: Math.round(stage.share * 100),
+      carbonTons:       Number((totalCO2Tons  * stage.share).toFixed(2)),
+      energyMwh:        Number((totalEnergyMwh * stage.share).toFixed(2)),
+      contributionPct:  Math.round(stage.share * 100),
     }));
     lifecycleStages.push({
-      id: 'recovery',
-      name: 'Recovery / Recycled',
-      icon: 'recycling',
-      recoveryPct: avgRecoveryPct,
-      recycledPct: avgRecycledPct,
-      recycledTons: Number((totalQuantityTons * (avgRecycledPct / 100)).toFixed(2)),
+      id: 'recovery', name: 'Recovery / Recycled', icon: 'recycling',
+      recoveryPct:    avgRecoveryPct,
+      recycledPct:    avgRecycledPct,
+      recycledTons:   Number((totalQuantityTons * (avgRecycledPct / 100)).toFixed(2)),
       contributionPct: avgRecycledPct,
     });
 
-    // Scoring baseline
-    const carbonScore = Math.min(100, Math.max(30, Math.round(100 - carbonIntensityPerTon * 20)));
+    // ── Sustainability Scoring ────────────────────────────────────────────────
+    // Carbon score: penalises high carbon intensity (tCO2/t production)
+    const carbonScore      = Math.min(100, Math.max(20, Math.round(100 - carbonIntensityPerTon * 10)));
     const circularityScore = avgCircularity;
-    const resourceScore = Math.min(100, Math.round((avgRecycledPct + avgRecoveryPct) / 2));
-    const transportScore = Math.min(100, Math.max(40, Math.round(100 - (totalTransportKm / totalCount) / 10)));
-    const overallScore = Math.round((carbonScore * 0.35) + (circularityScore * 0.35) + (resourceScore * 0.15) + (transportScore * 0.15));
+    const resourceScore    = Math.min(100, Math.round((avgRecycledPct + avgRecoveryPct) / 2));
+    const transportScore   = Math.min(100, Math.max(40, Math.round(100 - (totalTransportKm / totalCount) / 10)));
+    const overallScore     = Math.round(
+      carbonScore      * 0.35 +
+      circularityScore * 0.35 +
+      resourceScore    * 0.15 +
+      transportScore   * 0.15
+    );
 
     return {
+      // Counts & production
       totalCount,
       totalQuantityKg,
-      totalQuantityTons: totalQuantityTons.toFixed(2),
+      totalQuantityTons:   totalQuantityTons.toFixed(2),
+      // Carbon (calculated from electricity + fuel — NOT stored in raw data)
       totalCO2Kg,
-      totalCO2Tons: totalCO2Tons.toFixed(2),
+      totalCO2Tons:        totalCO2Tons.toFixed(2),
+      // Energy
       totalEnergyKwh,
-      totalEnergyMwh: totalEnergyMwh.toFixed(1),
+      totalEnergyMwh:      totalEnergyMwh.toFixed(1),
+      // Fuel (new field)
+      totalFuelL,
+      // Water
       totalWaterL,
-      totalWaterM3: totalWaterM3.toFixed(1),
-      totalCostINR,
-      totalCostLakhs: (totalCostINR / 100000).toFixed(2),
+      totalWaterM3:        totalWaterM3.toFixed(1),
+      // Transport
       totalTransportKm,
-      avgTransportKm: Math.round(totalTransportKm / totalCount),
+      avgTransportKm:      Math.round(totalTransportKm / totalCount),
+      // Material flows
       totalMfgLossKg,
+      totalWasteLossKg,
+      totalVirginKg,
+      totalRecycledKg,
+      totalRecoveredKg,
+      // Derived averages
       avgRecycledPct,
       avgVirginPct,
       avgRecoveryPct,
       avgCircularity,
+      // Intensities
       carbonIntensityPerKg,
       carbonIntensityPerTon,
       energyIntensityPerKg,
+      // Breakdowns
       lifecycleStages,
       metalStats,
       hotspots: {
@@ -173,59 +270,59 @@ export const DataProvider = ({ children }) => {
         transportCO2Tons,
         refiningCO2Tons,
         processingCO2Tons,
-        topEmittingMetal: metalStats.sort((a, b) => b.co2_kg - a.co2_kg)[0]?.metal || 'Aluminium'
+        topEmittingMetal: [...metalStats].sort((a, b) => b.co2_kg - a.co2_kg)[0]?.metal || 'Steel',
       },
-      scores: {
-        carbonScore,
-        circularityScore,
-        resourceScore,
-        transportScore,
-        overallScore
-      }
+      scores: { carbonScore, circularityScore, resourceScore, transportScore, overallScore },
     };
   }, [filteredRows]);
 
-  // Computed Simulation Metrics based on simControls
+  // ── Simulation Metrics (computed from simControls + baseline) ─────────────
   const simMetrics = useMemo(() => {
     if (!metrics) return null;
 
-    const currentRecycled = metrics.avgRecycledPct;
-    const recycledGainFactor = (simControls.recycledPctTarget - currentRecycled) * 0.008; // carbon reduction per % gain
+    const currentRecycled   = metrics.avgRecycledPct;
+    const recycledGainFactor = (simControls.recycledPctTarget - currentRecycled) * 0.008;
     const renewableGainFactor = simControls.renewableEnergyPct * 0.004;
-    const railGainFactor = simControls.railShiftPct * 0.003;
+    const railGainFactor      = simControls.railShiftPct * 0.003;
 
-    const totalReductionPct = Math.max(0.05, Math.min(0.45, recycledGainFactor + renewableGainFactor + railGainFactor));
+    const totalReductionPct = Math.max(0.05, Math.min(0.45,
+      recycledGainFactor + renewableGainFactor + railGainFactor
+    ));
 
-    const simulatedCO2Tons = (parseFloat(metrics.totalCO2Tons) * (1 - totalReductionPct)).toFixed(2);
-    const simulatedEnergyMwh = (parseFloat(metrics.totalEnergyMwh) * (1 - simControls.renewableEnergyPct * 0.0025)).toFixed(1);
-    const simulatedCircularity = Math.min(95, Math.round(metrics.avgCircularity + (simControls.recycledPctTarget - currentRecycled) * 0.6));
-    
-    // Improved overall score
-    const simulatedOverallScore = Math.min(98, Math.round(metrics.scores.overallScore + (totalReductionPct * 40) + (simulatedCircularity - metrics.avgCircularity) * 0.3));
+    const simulatedCO2Tons     = (parseFloat(metrics.totalCO2Tons) * (1 - totalReductionPct)).toFixed(2);
+    const simulatedEnergyMwh   = (parseFloat(metrics.totalEnergyMwh) * (1 - simControls.renewableEnergyPct * 0.0025)).toFixed(1);
+    const simulatedCircularity = Math.min(95, Math.round(
+      metrics.avgCircularity + (simControls.recycledPctTarget - currentRecycled) * 0.6
+    ));
+    const simulatedOverallScore = Math.min(98, Math.round(
+      metrics.scores.overallScore + (totalReductionPct * 40) + (simulatedCircularity - metrics.avgCircularity) * 0.3
+    ));
     const scoreImprovement = simulatedOverallScore - metrics.scores.overallScore;
 
     return {
       simulatedCO2Tons,
-      co2ReductionPct: (totalReductionPct * 100).toFixed(1),
+      co2ReductionPct:       (totalReductionPct * 100).toFixed(1),
       simulatedEnergyMwh,
       simulatedCircularity,
       simulatedOverallScore,
-      scoreImprovement: scoreImprovement > 0 ? `+${scoreImprovement}` : `${scoreImprovement}`
+      scoreImprovement: scoreImprovement > 0 ? `+${scoreImprovement}` : `${scoreImprovement}`,
     };
   }, [metrics, simControls]);
 
-  // Upload custom file / dataset parser
+  // ── Dataset Upload — accepts new raw industry schema ──────────────────────
+  // enrichRow() will automatically derive all calculated values from raw inputs.
   const uploadCustomDataset = (newRows, filename) => {
     if (Array.isArray(newRows) && newRows.length > 0) {
       setRows(newRows);
       if (filename) setActiveFileName(filename);
+      setSelectedMetal('All');
     }
   };
 
   const resetToDefault = () => {
     setRows(defaultRawDataset);
     setSelectedMetal('All');
-    setActiveFileName('PS_25069_Metal_LCA_Dataset.csv');
+    setActiveFileName('Industry_Raw_Dataset_2024.csv');
   };
 
   return (
@@ -241,7 +338,7 @@ export const DataProvider = ({ children }) => {
         setSelectedMetal,
         activeFileName,
         uploadCustomDataset,
-        resetToDefault
+        resetToDefault,
       }}
     >
       {children}
