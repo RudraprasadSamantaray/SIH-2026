@@ -111,6 +111,30 @@ export const DataProvider = ({ children }) => {
     const transportCO2Tons = (totalCO2Tons * 0.14).toFixed(2);
     const refiningCO2Tons = (totalCO2Tons * 0.10).toFixed(2);
     const processingCO2Tons = (totalCO2Tons * 0.07).toFixed(2);
+    // The existing LCA model allocates the live total across lifecycle stages.
+    // Keep that same allocation for every view, including the 3D landscape.
+    const lifecycleAllocation = [
+      { id: 'mining', name: 'Mining', share: 0.27, icon: 'landscape' },
+      { id: 'processing', name: 'Processing', share: 0.07, icon: 'factory' },
+      { id: 'refining', name: 'Refining', share: 0.10, icon: 'science' },
+      { id: 'smelting', name: 'Metal Smelting', share: 0.42, icon: 'local_fire_department' },
+      { id: 'transport', name: 'Logistics / Transport', share: 0.14, icon: 'local_shipping' },
+    ];
+    const lifecycleStages = lifecycleAllocation.map((stage) => ({
+      ...stage,
+      carbonTons: Number((totalCO2Tons * stage.share).toFixed(2)),
+      energyMwh: Number((totalEnergyMwh * stage.share).toFixed(2)),
+      contributionPct: Math.round(stage.share * 100),
+    }));
+    lifecycleStages.push({
+      id: 'recovery',
+      name: 'Recovery / Recycled',
+      icon: 'recycling',
+      recoveryPct: avgRecoveryPct,
+      recycledPct: avgRecycledPct,
+      recycledTons: Number((totalQuantityTons * (avgRecycledPct / 100)).toFixed(2)),
+      contributionPct: avgRecycledPct,
+    });
 
     // Scoring baseline
     const carbonScore = Math.min(100, Math.max(30, Math.round(100 - carbonIntensityPerTon * 20)));
@@ -141,6 +165,7 @@ export const DataProvider = ({ children }) => {
       carbonIntensityPerKg,
       carbonIntensityPerTon,
       energyIntensityPerKg,
+      lifecycleStages,
       metalStats,
       hotspots: {
         smeltingCO2Tons,
