@@ -1,17 +1,37 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useDataset } from '../context/DataContext';
 
 export default function Scoring() {
+  const { metrics, simMetrics, selectedMetal, setSelectedMetal } = useDataset();
   const navigate = useNavigate();
+
+  if (!metrics || !simMetrics) return null;
 
   return (
     <div className="max-w-7xl mx-auto space-y-gutter">
       {/* Header */}
-      <header className="mb-xl border-b border-outline-variant pb-md">
-        <h1 className="font-headline-lg text-headline-lg text-on-surface font-bold">Scoring Board</h1>
-        <p className="font-body-md text-body-md text-on-surface-variant mt-xs">
-          Compare the current and simulated scenarios.
-        </p>
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-xl border-b border-outline-variant pb-md">
+        <div>
+          <h1 className="font-headline-lg text-headline-lg text-on-surface font-bold">Scoring Board</h1>
+          <p className="font-body-md text-body-md text-on-surface-variant mt-xs">
+            Overall environmental &amp; circularity score evaluation derived from PS 25069 Dataset.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-1 bg-surface-bright border border-outline-variant p-1 rounded-lg text-xs font-semibold">
+          {['All', 'Aluminium', 'Steel', 'Copper'].map((m) => (
+            <button
+              key={m}
+              onClick={() => setSelectedMetal(m)}
+              className={`px-3 py-1 rounded transition-colors cursor-pointer ${
+                selectedMetal === m ? 'bg-primary text-on-primary font-bold' : 'text-on-surface-variant hover:text-on-surface'
+              }`}
+            >
+              {m}
+            </button>
+          ))}
+        </div>
       </header>
 
       {/* Main Scoring Grid */}
@@ -21,24 +41,24 @@ export default function Scoring() {
           <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-primary to-primary-container"></div>
           
           <span className="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-xs font-semibold">
-            CURRENT SCORE
+            CURRENT DATASET SCORE
           </span>
           <div className="font-mono-data text-5xl font-bold text-on-surface mb-md">
-            67<span className="text-2xl text-on-surface-variant font-normal">/100</span>
+            {metrics.scores.overallScore}<span className="text-2xl text-on-surface-variant font-normal">/100</span>
           </div>
 
           <span className="material-symbols-outlined text-on-surface-variant text-2xl my-2">arrow_downward</span>
 
           <span className="font-label-md text-label-md text-primary font-bold uppercase tracking-wider mb-xs">
-            SIMULATED SCORE
+            SIMULATED PROJECTION SCORE
           </span>
           <div className="font-mono-data text-6xl font-bold text-primary mb-lg">
-            81<span className="text-2xl text-primary/70 font-normal">/100</span>
+            {simMetrics.simulatedOverallScore}<span className="text-2xl text-primary/70 font-normal">/100</span>
           </div>
 
           <div className="bg-primary-container text-on-primary font-label-md text-xs font-bold py-2 px-6 rounded-full flex items-center gap-1 shadow-sm">
             <span className="material-symbols-outlined text-sm">trending_up</span>
-            +14 POINT IMPROVEMENT
+            {simMetrics.scoreImprovement} POINT IMPROVEMENT
           </div>
         </div>
 
@@ -48,7 +68,7 @@ export default function Scoring() {
           <div className="p-md bg-surface-bright border-l-4 border-primary border border-outline-variant rounded-lg flex items-start gap-md shadow-sm">
             <span className="material-symbols-outlined text-primary text-xl mt-0.5">info</span>
             <p className="text-body-md text-sm text-on-surface leading-relaxed">
-              Simulated scenario performs better across the selected environmental and circularity indicators.
+              Simulated scenario achieves <span className="font-bold text-primary">{simMetrics.co2ReductionPct}% lower carbon emissions</span> and improves circularity index to <span className="font-bold text-tertiary">{simMetrics.simulatedCircularity}/100</span>.
             </p>
           </div>
 
@@ -71,38 +91,42 @@ export default function Scoring() {
                 <tbody className="font-mono-data text-mono-data text-on-surface text-sm">
                   <tr className="border-b border-outline-variant hover:bg-surface/50 transition-colors">
                     <td className="py-sm px-md font-body-sm text-body-sm font-semibold flex items-center gap-2">
-                      <span className="material-symbols-outlined text-xs text-primary">co2</span> Carbon Emission
+                      <span className="material-symbols-outlined text-xs text-primary">co2</span> Carbon Emissions
                     </td>
-                    <td className="py-sm px-md">1,250 kg</td>
-                    <td className="py-sm px-md text-primary font-bold">980 kg</td>
-                    <td className="py-sm px-md text-right text-primary font-bold">-21.6%</td>
+                    <td className="py-sm px-md">{metrics.totalCO2Tons} tCO2e</td>
+                    <td className="py-sm px-md text-primary font-bold">{simMetrics.simulatedCO2Tons} tCO2e</td>
+                    <td className="py-sm px-md text-right text-primary font-bold">-{simMetrics.co2ReductionPct}%</td>
                   </tr>
 
                   <tr className="border-b border-outline-variant hover:bg-surface/50 transition-colors">
                     <td className="py-sm px-md font-body-sm text-body-sm font-semibold flex items-center gap-2">
                       <span className="material-symbols-outlined text-xs text-tertiary">bolt</span> Energy Usage
                     </td>
-                    <td className="py-sm px-md">4.5 MWh</td>
-                    <td className="py-sm px-md text-primary font-bold">3.9 MWh</td>
-                    <td className="py-sm px-md text-right text-primary font-bold">-13.3%</td>
+                    <td className="py-sm px-md">{metrics.totalEnergyMwh} MWh</td>
+                    <td className="py-sm px-md text-primary font-bold">{simMetrics.simulatedEnergyMwh} MWh</td>
+                    <td className="py-sm px-md text-right text-primary font-bold">
+                      -{(((parseFloat(metrics.totalEnergyMwh) - parseFloat(simMetrics.simulatedEnergyMwh)) / parseFloat(metrics.totalEnergyMwh)) * 100).toFixed(1)}%
+                    </td>
                   </tr>
 
                   <tr className="border-b border-outline-variant hover:bg-surface/50 transition-colors">
                     <td className="py-sm px-md font-body-sm text-body-sm font-semibold flex items-center gap-2">
-                      <span className="material-symbols-outlined text-xs text-secondary">sync</span> Circularity
+                      <span className="material-symbols-outlined text-xs text-secondary">sync</span> Circularity Index
                     </td>
-                    <td className="py-sm px-md">45%</td>
-                    <td className="py-sm px-md text-primary font-bold">62%</td>
-                    <td className="py-sm px-md text-right text-primary font-bold">+17%</td>
+                    <td className="py-sm px-md">{metrics.avgCircularity}/100</td>
+                    <td className="py-sm px-md text-primary font-bold">{simMetrics.simulatedCircularity}/100</td>
+                    <td className="py-sm px-md text-right text-tertiary font-bold">
+                      +{simMetrics.simulatedCircularity - metrics.avgCircularity} PTS
+                    </td>
                   </tr>
 
                   <tr className="hover:bg-surface/50 transition-colors">
                     <td className="py-sm px-md font-body-sm text-body-sm font-semibold flex items-center gap-2">
-                      <span className="material-symbols-outlined text-xs text-primary">water_drop</span> Recovery
+                      <span className="material-symbols-outlined text-xs text-primary">water_drop</span> Material Recovery
                     </td>
-                    <td className="py-sm px-md">78%</td>
-                    <td className="py-sm px-md text-primary font-bold">85%</td>
-                    <td className="py-sm px-md text-right text-primary font-bold">+7%</td>
+                    <td className="py-sm px-md">{metrics.avgRecoveryPct}%</td>
+                    <td className="py-sm px-md text-primary font-bold">{Math.min(98, metrics.avgRecoveryPct + 12)}%</td>
+                    <td className="py-sm px-md text-right text-tertiary font-bold">+12%</td>
                   </tr>
                 </tbody>
               </table>

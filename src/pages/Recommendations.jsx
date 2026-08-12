@@ -1,17 +1,37 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useDataset } from '../context/DataContext';
 
 export default function Recommendations() {
+  const { metrics, simMetrics, selectedMetal, setSelectedMetal } = useDataset();
   const navigate = useNavigate();
+
+  if (!metrics || !simMetrics) return null;
 
   return (
     <div className="max-w-7xl mx-auto space-y-gutter">
       {/* Header */}
-      <header className="mb-xl">
-        <h1 className="font-headline-lg text-headline-lg text-on-surface font-bold">Recommendations</h1>
-        <p className="font-body-md text-body-md text-on-surface-variant mt-xs max-w-3xl">
-          Recommended actions based on LCA, circularity, transportation and simulation results. Implementing these can significantly lower environmental impact.
-        </p>
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-xl">
+        <div>
+          <h1 className="font-headline-lg text-headline-lg text-on-surface font-bold">Recommendations &amp; Interventions</h1>
+          <p className="font-body-md text-body-md text-on-surface-variant mt-xs max-w-3xl">
+            Targeted decarbonization interventions calculated live from PS 25069 Dataset ({metrics.totalCount} batches).
+          </p>
+        </div>
+
+        <div className="flex items-center gap-1 bg-surface-bright border border-outline-variant p-1 rounded-lg text-xs font-semibold">
+          {['All', 'Aluminium', 'Steel', 'Copper'].map((m) => (
+            <button
+              key={m}
+              onClick={() => setSelectedMetal(m)}
+              className={`px-3 py-1 rounded transition-colors cursor-pointer ${
+                selectedMetal === m ? 'bg-primary text-on-primary font-bold' : 'text-on-surface-variant hover:text-on-surface'
+              }`}
+            >
+              {m}
+            </button>
+          ))}
+        </div>
       </header>
 
       {/* 3 Column Cards Layout */}
@@ -25,7 +45,7 @@ export default function Recommendations() {
               </div>
               <div>
                 <h3 className="font-headline-sm text-headline-sm font-bold text-on-surface leading-snug">
-                  Increase Recycled Material Usage
+                  Increase Recycled Material Input
                 </h3>
                 <span className="font-label-md text-[10px] text-on-surface-variant uppercase tracking-wider font-bold">
                   SIMULATION INSIGHT
@@ -36,36 +56,39 @@ export default function Recommendations() {
             <div className="space-y-3 pt-md border-t border-outline-variant text-xs">
               <div>
                 <div className="flex items-center gap-1 font-semibold text-error mb-1">
-                  <span className="material-symbols-outlined text-sm">warning</span> Problem
+                  <span className="material-symbols-outlined text-sm">warning</span> Current Limitation
                 </div>
                 <p className="text-on-surface-variant leading-relaxed">
-                  Current secondary aluminum input is <span className="font-bold text-error">15%</span> lower than simulated optimal threshold for Plant A-12.
+                  Dataset secondary recycled content is <span className="font-bold text-error">{metrics.avgRecycledPct}%</span> across {metrics.totalQuantityTons} tonnes metal output.
                 </p>
               </div>
 
               <div>
                 <div className="flex items-center gap-1 font-semibold text-primary mb-1">
-                  <span className="material-symbols-outlined text-sm">build</span> Action
+                  <span className="material-symbols-outlined text-sm">build</span> Recommended Action
                 </div>
                 <p className="text-on-surface-variant leading-relaxed">
-                  Increase post-consumer scrap input to <span className="font-bold text-on-surface">45%</span> of total melt mix.
+                  Increase scrap recycling ratio to <span className="font-bold text-on-surface">65%</span> of total furnace melt input.
                 </p>
               </div>
 
               <div className="p-sm bg-surface-bright border border-outline-variant rounded">
                 <div className="flex items-center gap-1 font-semibold text-primary mb-0.5">
-                  <span className="material-symbols-outlined text-sm">trending_down</span> Projected Improvement
+                  <span className="material-symbols-outlined text-sm">trending_down</span> Projected Carbon Offset
                 </div>
                 <p className="text-on-surface-variant text-[11px]">
-                  Lower overall carbon impact by <span className="font-bold text-primary">~12%</span> per ton.
+                  Lower overall carbon emissions by <span className="font-bold text-primary">-{simMetrics.co2ReductionPct}% ({simMetrics.simulatedCO2Tons} tCO2e)</span>.
                 </p>
               </div>
             </div>
           </div>
 
           <div className="pt-lg">
-            <button className="w-full bg-surface border border-outline-variant hover:bg-surface-container-low text-xs font-semibold py-2 rounded text-on-surface flex items-center justify-center gap-1 transition-colors cursor-pointer">
-              View Basis <span className="material-symbols-outlined text-sm">arrow_forward</span>
+            <button
+              onClick={() => navigate('/simulator')}
+              className="w-full bg-surface border border-outline-variant hover:bg-surface-container-low text-xs font-semibold py-2 rounded text-on-surface flex items-center justify-center gap-1 transition-colors cursor-pointer"
+            >
+              Test in Simulator <span className="material-symbols-outlined text-sm">arrow_forward</span>
             </button>
           </div>
         </div>
@@ -79,7 +102,7 @@ export default function Recommendations() {
               </div>
               <div>
                 <h3 className="font-headline-sm text-headline-sm font-bold text-on-surface leading-snug">
-                  Consider Lower-Impact Transportation
+                  Electrified Rail Modal Shift
                 </h3>
                 <span className="font-label-md text-[10px] text-on-surface-variant uppercase tracking-wider font-bold">
                   LOGISTICS INSIGHT
@@ -90,19 +113,19 @@ export default function Recommendations() {
             <div className="space-y-3 pt-md border-t border-outline-variant text-xs">
               <div>
                 <div className="flex items-center gap-1 font-semibold text-error mb-1">
-                  <span className="material-symbols-outlined text-sm">warning</span> Problem
+                  <span className="material-symbols-outlined text-sm">warning</span> Current Limitation
                 </div>
                 <p className="text-on-surface-variant leading-relaxed">
-                  Route Bux-09 via heavy-duty trucking contributes disproportionately high Scope 3 emissions.
+                  Dataset total freight distance is <span className="font-bold text-error">{metrics.totalTransportKm} km</span>, generating {metrics.hotspots.transportCO2Tons} tCO2e Scope 3 emissions.
                 </p>
               </div>
 
               <div>
                 <div className="flex items-center gap-1 font-semibold text-primary mb-1">
-                  <span className="material-symbols-outlined text-sm">alt_route</span> Action
+                  <span className="material-symbols-outlined text-sm">alt_route</span> Recommended Action
                 </div>
                 <p className="text-on-surface-variant leading-relaxed">
-                  Shift <span className="font-bold text-on-surface">60%</span> of bauxite transport volume to existing rail network infrastructure.
+                  Shift long-distance freight (&gt;300km) to electrified rail network corridor.
                 </p>
               </div>
 
@@ -111,15 +134,18 @@ export default function Recommendations() {
                   <span className="material-symbols-outlined text-sm">trending_down</span> Projected Improvement
                 </div>
                 <p className="text-on-surface-variant text-[11px]">
-                  Reduced transport impact by <span className="font-bold text-primary">2.4 kt CO2e/yr</span>.
+                  Reduce freight carbon intensity by <span className="font-bold text-primary">60%</span>.
                 </p>
               </div>
             </div>
           </div>
 
           <div className="pt-lg">
-            <button className="w-full bg-surface border border-outline-variant hover:bg-surface-container-low text-xs font-semibold py-2 rounded text-on-surface flex items-center justify-center gap-1 transition-colors cursor-pointer">
-              View Basis <span className="material-symbols-outlined text-sm">arrow_forward</span>
+            <button
+              onClick={() => navigate('/transportation')}
+              className="w-full bg-surface border border-outline-variant hover:bg-surface-container-low text-xs font-semibold py-2 rounded text-on-surface flex items-center justify-center gap-1 transition-colors cursor-pointer"
+            >
+              View Route Comparison <span className="material-symbols-outlined text-sm">arrow_forward</span>
             </button>
           </div>
         </div>
@@ -133,7 +159,7 @@ export default function Recommendations() {
               </div>
               <div>
                 <h3 className="font-headline-sm text-headline-sm font-bold text-on-surface leading-snug">
-                  Improve Material Recovery
+                  Reduce Manufacturing Scrap Loss
                 </h3>
                 <span className="font-label-md text-[10px] text-on-surface-variant uppercase tracking-wider font-bold">
                   CIRCULARITY INSIGHT
@@ -144,19 +170,19 @@ export default function Recommendations() {
             <div className="space-y-3 pt-md border-t border-outline-variant text-xs">
               <div>
                 <div className="flex items-center gap-1 font-semibold text-error mb-1">
-                  <span className="material-symbols-outlined text-sm">warning</span> Problem
+                  <span className="material-symbols-outlined text-sm">warning</span> Current Limitation
                 </div>
                 <p className="text-on-surface-variant leading-relaxed">
-                  Significant material loss detected in dross processing phase at Facility C.
+                  Total manufacturing loss is <span className="font-bold text-error">{metrics.totalMfgLossKg} kg ({(metrics.totalMfgLossKg / 1000).toFixed(2)} tonnes)</span> across dataset batches.
                 </p>
               </div>
 
               <div>
                 <div className="flex items-center gap-1 font-semibold text-primary mb-1">
-                  <span className="material-symbols-outlined text-sm">handyman</span> Action
+                  <span className="material-symbols-outlined text-sm">handyman</span> Recommended Action
                 </div>
                 <p className="text-on-surface-variant leading-relaxed">
-                  Implement closed-loop dross pressing technology to improve metal yield.
+                  Implement closed-loop dross pressing and internal scrap recycling.
                 </p>
               </div>
 
@@ -165,15 +191,18 @@ export default function Recommendations() {
                   <span className="material-symbols-outlined text-sm">trending_up</span> Projected Improvement
                 </div>
                 <p className="text-on-surface-variant text-[11px]">
-                  Higher circularity score (<span className="font-bold text-primary">+8 points</span>) and reduced primary resource draw.
+                  Boost circularity score to <span className="font-bold text-primary">{simMetrics.simulatedCircularity}/100</span> (+{simMetrics.simulatedCircularity - metrics.avgCircularity} points).
                 </p>
               </div>
             </div>
           </div>
 
           <div className="pt-lg">
-            <button className="w-full bg-surface border border-outline-variant hover:bg-surface-container-low text-xs font-semibold py-2 rounded text-on-surface flex items-center justify-center gap-1 transition-colors cursor-pointer">
-              View Basis <span className="material-symbols-outlined text-sm">arrow_forward</span>
+            <button
+              onClick={() => navigate('/circularity')}
+              className="w-full bg-surface border border-outline-variant hover:bg-surface-container-low text-xs font-semibold py-2 rounded text-on-surface flex items-center justify-center gap-1 transition-colors cursor-pointer"
+            >
+              View Circularity Flow <span className="material-symbols-outlined text-sm">arrow_forward</span>
             </button>
           </div>
         </div>
@@ -185,7 +214,7 @@ export default function Recommendations() {
           onClick={() => navigate('/reports')}
           className="bg-primary-container text-on-primary font-label-md text-label-md px-xl py-sm rounded-md flex items-center gap-sm hover:bg-primary transition-all font-bold cursor-pointer shadow-sm"
         >
-          Generate Report
+          Generate Executive Report
           <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
         </button>
       </div>
