@@ -70,13 +70,13 @@ export default function DataUpload() {
               <span className="material-symbols-outlined text-4xl">cloud_upload</span>
             </div>
             <h3 className="font-headline-sm text-headline-sm text-on-surface mb-sm">
-              Upload Industrial Excel Sheet
+              Upload Operational Data
             </h3>
             <p className="font-body-sm text-body-sm text-on-surface-variant mb-lg text-center max-w-md">
-              Drag and drop your .xlsx, .xls, or .csv files here, or click to browse. Ensure data follows the standard EcoMetrix template.
+              Drag and drop your files here, or click to browse. Supported formats: Excel (.xlsx, .xls), CSV, PDF, and Word (.docx, .doc).
             </p>
             <input
-              accept=".xlsx,.xls,.csv"
+              accept=".xlsx,.xls,.csv,.pdf,.docx,.doc"
               className="hidden"
               id="file-input"
               onChange={handleFileSelect}
@@ -167,9 +167,13 @@ export default function DataUpload() {
       <div className="mt-lg bg-surface-bright border border-outline-variant rounded-lg p-md flex gap-md items-start">
         <span className="material-symbols-outlined text-secondary mt-unit">info</span>
         <div>
-          <h4 className="font-headline-sm text-headline-sm text-on-surface text-sm mb-xs">Data Requirements</h4>
+          <h4 className="font-headline-sm text-headline-sm text-on-surface text-sm mb-xs">Supported File Formats</h4>
           <p className="font-body-sm text-body-sm text-on-surface-variant">
-            Ensure your dataset includes mandatory columns: 'Timestamp', 'Process_ID', and 'Energy_kWh'. Files missing these headers will be flagged for review during processing.
+            <strong>Excel (.xlsx, .xls)</strong> — Structured operational data with standard EcoMetrix template columns.<br />
+            <strong>CSV (.csv)</strong> — Comma-separated data exports from plant systems.<br />
+            <strong>PDF (.pdf)</strong> — Scanned reports, compliance certificates, or emission declarations.<br />
+            <strong>Word (.docx, .doc)</strong> — Supplementary documentation, audit notes, or operational summaries.<br />
+            <span className="text-on-surface-variant mt-1 block">For tabular data, ensure columns include: 'Timestamp', 'Process_ID', and 'Energy_kWh'.</span>
           </p>
         </div>
       </div>
