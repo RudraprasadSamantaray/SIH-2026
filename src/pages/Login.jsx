@@ -4,15 +4,23 @@ import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
   const [role, setRole] = useState('engineer');
-  const [email, setEmail] = useState('engineer@company.com');
-  const [password, setPassword] = useState('••••••••');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    login(email, password, role);
-    navigate('/');
+    const loggedUser = login(email, password, role);
+
+    // Redirect to role-specific homepage
+    if (loggedUser.role === 'auditor') {
+      navigate('/auditor');
+    } else if (loggedUser.role === 'admin') {
+      navigate('/admin');
+    } else {
+      navigate('/');
+    }
   };
 
   return (
@@ -37,14 +45,14 @@ export default function Login() {
             </label>
             <div className="relative">
               <select
-                className="w-full appearance-none bg-surface-container-lowest border border-[#D1D5DB] rounded focus:border-primary focus:ring-0 font-body-md text-body-md text-on-surface py-sm px-md pr-xl"
+                className="w-full appearance-none bg-surface-container-lowest border border-[#D1D5DB] rounded focus:border-primary focus:ring-0 font-body-md text-body-md text-on-surface py-sm px-md pr-xl cursor-pointer"
                 id="role"
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
               >
                 <option value="engineer">Engineer</option>
-                <option value="admin">Admin</option>
                 <option value="auditor">Auditor</option>
+                <option value="admin">Admin</option>
               </select>
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-sm text-on-surface-variant">
                 <span className="material-symbols-outlined text-body-lg">arrow_drop_down</span>
@@ -59,7 +67,7 @@ export default function Login() {
             <input
               className="w-full bg-surface-container-lowest border border-[#D1D5DB] rounded focus:border-primary focus:ring-0 font-body-md text-body-md text-on-surface py-sm px-md"
               id="email"
-              placeholder="name@company.com"
+              placeholder={role === 'auditor' ? 'auditor@ecometrix.ai' : role === 'admin' ? 'admin@ecometrix.ai' : 'engineer@company.com'}
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -84,7 +92,7 @@ export default function Login() {
             className="w-full bg-primary-container text-on-primary font-label-md text-label-md uppercase py-sm px-md rounded transition-colors hover:bg-primary cursor-pointer font-bold tracking-wider"
             type="submit"
           >
-            Sign In
+            Sign In as {role.charAt(0).toUpperCase() + role.slice(1)}
           </button>
         </form>
 
@@ -93,7 +101,7 @@ export default function Login() {
             Forgot your password?
           </a>
           <div className="text-xs text-on-surface-variant pt-4 border-t border-outline-variant">
-            Demo credentials pre-filled. Click <span className="font-bold text-primary">Sign In</span> to access the platform.
+            Select a role and click <span className="font-bold text-primary">Sign In</span> to enter the role portal.
           </div>
         </div>
       </div>
