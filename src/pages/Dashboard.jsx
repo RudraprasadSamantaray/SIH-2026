@@ -4,9 +4,149 @@ import { useAuth } from '../context/AuthContext';
 import { useDataset } from '../context/DataContext';
 import AnimatedNumber from '../components/AnimatedNumber';
 
+function SparklineTrendChart({ filteredRows }) {
+  // Aggregate emissions by month
+  const monthlyData = {};
+  filteredRows.forEach((r) => {
+    if (r.date) {
+      const monthKey = r.date.substring(0, 7); // e.g. "2024-01"
+      if (!monthlyData[monthKey]) {
+        monthlyData[monthKey] = { co2Kg: 0, count: 0 };
+      }
+      monthlyData[monthKey].co2Kg += r.co2_kg || 0;
+      monthlyData[monthKey].count += 1;
+    }
+  });
+
+  const sortedMonths = Object.keys(monthlyData).sort();
+  if (sortedMonths.length < 2) return null;
+
+  const dataPoints = sortedMonths.map((m) => ({
+    month: m,
+    co2Tons: (monthlyData[m].co2Kg / 1000).toFixed(1)
+  }));
+
+  const values = dataPoints.map((d) => parseFloat(d.co2Tons));
+  const maxVal = Math.max(...values) * 1.1; // 10% ceiling padding
+  const minVal = Math.max(0, Math.min(...values) * 0.9); // 10% floor padding
+  const valRange = maxVal - minVal || 1;
+
+  // SVG parameters
+  const width = 600;
+  const height = 140;
+  const paddingX = 40;
+  const paddingY = 25;
+
+  const points = dataPoints.map((d, index) => {
+    const x = paddingX + (index / (dataPoints.length - 1)) * (width - 2 * paddingX);
+    const y = height - paddingY - ((parseFloat(d.co2Tons) - minVal) / valRange) * (height - 2 * paddingY);
+    return { x, y, month: d.month, val: d.co2Tons };
+  });
+
+  // Path generator
+  const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+  const areaPath = `${linePath} L ${points[points.length - 1].x} ${height - paddingY} L ${points[0].x} ${height - paddingY} Z`;
+
+  const isDecreasing = values[values.length - 1] < values[0];
+
+  return (
+    <div className="premium-card rounded-xl p-[24px]">
+      <div className="flex justify-between items-center pb-3 border-b border-outline-variant/40 mb-4">
+        <div>
+          <h3 className="text-sm font-bold text-on-surface uppercase tracking-wider">Historical Emissions Trend</h3>
+          <p className="text-xs text-on-surface-variant mt-0.5">Month-over-month carbon intensity lifecycle assessment (tCO2e)</p>
+        </div>
+        <span className={`text-[10px] font-bold uppercase px-2.5 py-1 rounded-lg flex items-center gap-1 border ${
+          isDecreasing 
+            ? 'bg-primary/10 text-primary border-primary/20' 
+            : 'bg-error/10 text-error border-error/20'
+        }`}>
+          <span className="material-symbols-outlined text-xs">
+            {isDecreasing ? 'trending_down' : 'trending_up'}
+          </span>
+          {isDecreasing ? 'Emissions Decreasing' : 'Emissions Increasing'}
+        </span>
+      </div>
+
+      <div className="relative pt-2">
+        <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto overflow-visible">
+          <defs>
+            <linearGradient id="sparklineGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--color-primary)" stopOpacity="0.15" />
+              <stop offset="100%" stopColor="var(--color-primary)" stopOpacity="0.0" />
+            </linearGradient>
+          </defs>
+
+          {/* Grid Guideline lines */}
+          <line x1={paddingX} y1={height - paddingY} x2={width - paddingX} y2={height - paddingY} stroke="var(--color-outline-variant)" strokeOpacity="0.4" strokeWidth="1" />
+          <line x1={paddingX} y1={paddingY} x2={width - paddingX} y2={paddingY} stroke="var(--color-outline-variant)" strokeOpacity="0.15" strokeWidth="1" strokeDasharray="3 3" />
+
+          {/* Gradient area fill */}
+          <path d={areaPath} fill="url(#sparklineGrad)" />
+
+          {/* Connection line */}
+          <path d={linePath} fill="none" stroke="var(--color-primary)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+
+          {/* Active Data Nodes */}
+          {points.map((p, idx) => {
+            const dateObj = new Date(p.month + '-02'); // add day to bypass TZ anomalies
+            const monthLabel = dateObj.toLocaleDateString('en-US', { month: 'short' });
+            return (
+              <g key={idx} className="group cursor-pointer">
+                {/* Visual Circle dot */}
+                <circle
+                  cx={p.x}
+                  cy={p.y}
+                  r="4.5"
+                  fill="#ffffff"
+                  stroke="var(--color-primary)"
+                  strokeWidth="2.5"
+                  className="transition-all duration-200 group-hover:r-6"
+                />
+
+                {/* Floating tooltip labels on hover */}
+                <g className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                  <rect
+                    x={p.x - 30}
+                    y={p.y - 28}
+                    width="60"
+                    height="20"
+                    rx="6"
+                    fill="var(--color-on-background)"
+                    className="shadow-sm"
+                  />
+                  <text
+                    x={p.x}
+                    y={p.y - 15}
+                    textAnchor="middle"
+                    fill="#ffffff"
+                    className="text-[9px] font-bold font-mono-data"
+                  >
+                    {p.val}t
+                  </text>
+                </g>
+
+                {/* X Axis Month Label */}
+                <text
+                  x={p.x}
+                  y={height - 5}
+                  textAnchor="middle"
+                  className="text-[10px] font-medium fill-on-surface-variant font-sans"
+                >
+                  {monthLabel}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const { user } = useAuth();
-  const { metrics, activeFileName, selectedMetal, setSelectedMetal } = useDataset();
+  const { metrics, activeFileName, selectedMetal, setSelectedMetal, filteredRows } = useDataset();
   const navigate = useNavigate();
 
   if (!metrics) return null;
@@ -128,6 +268,9 @@ export default function Dashboard() {
           <div className="text-xs text-on-surface-variant mt-3"><AnimatedNumber value={metrics.totalTransportKm} decimals={0} /> km total freight distance</div>
         </div>
       </div>
+
+      {/* Sparkline Trend Chart Card */}
+      <SparklineTrendChart filteredRows={filteredRows} />
 
       {/* Main Grid: Hotspot Breakdown & Metal Intensity Breakdown in 2-column layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-[32px]">
