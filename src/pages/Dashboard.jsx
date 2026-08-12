@@ -269,9 +269,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Sparkline Trend Chart Card */}
-      <SparklineTrendChart filteredRows={filteredRows} />
-
       {/* Main Grid: Hotspot Breakdown & Metal Intensity Breakdown in 2-column layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-[32px]">
         
@@ -397,6 +394,9 @@ export default function Dashboard() {
         </section>
 
       </div>
+
+      {/* Sparkline Trend Chart Card */}
+      <SparklineTrendChart filteredRows={filteredRows} />
     </div>
   );
 }
