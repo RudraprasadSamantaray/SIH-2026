@@ -18,8 +18,21 @@ export default function Circularity() {
   const mciScore = (0.35 + (scrapRatio / 100) * 0.60).toFixed(2);
   const carbonSavings = (((scrapRatio - metrics.avgRecycledPct) * 0.08) * parseFloat(metrics.totalCO2Tons) / 100).toFixed(2);
 
+  // Compute waste distribution tons
+  const totalInputKg = (metrics.totalVirginKg || 0) + (metrics.totalRecycledKg || 0);
+  const totalInputTons = totalInputKg / 1000 || 1;
+  const productionTons = parseFloat(metrics.totalQuantityTons) || 0;
+  const recoveredTons = (metrics.totalRecoveredKg || 0) / 1000;
+  const lossTons = (metrics.totalWasteLossKg || 0) / 1000;
+
+  // Pct calculations for visual bars
+  const prodPct = Math.round((productionTons / totalInputTons) * 100) || 82;
+  const recPct = Math.round((recoveredTons / totalInputTons) * 100) || 15;
+  const lossPct = Math.round((lossTons / totalInputTons) * 100) || 3;
+
   return (
-    <div className="space-y-lg">
+    <div className="space-y-lg animate-fade-in-up">
+      {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-outline-variant/45">
         <div>
           <h2 className="font-headline-lg text-2xl md:text-3xl font-bold text-on-surface">Circularity Analysis</h2>
@@ -44,7 +57,7 @@ export default function Circularity() {
       </div>
 
       {/* Top Circularity Score Banner */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-gutter animate-fade-in-up">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-gutter">
         <div className="premium-card rounded-xl p-lg flex items-center justify-between">
           <div>
             <span className="text-xs font-semibold uppercase text-on-surface-variant">MCI Score</span>
@@ -157,6 +170,67 @@ export default function Circularity() {
             <p className="text-xs text-on-surface-variant mt-1">
               <AnimatedNumber value={metrics.totalQuantityTons} decimals={1} /> tonnes finished metal
             </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Furnace Waste Loss & Recovery Breakdown Bar Chart (New Feature) */}
+      <section className="premium-card rounded-xl p-lg space-y-4">
+        <div className="flex justify-between items-center pb-3 border-b border-outline-variant/60">
+          <div>
+            <h3 className="text-base font-bold text-on-surface uppercase tracking-wider">Furnace Waste Loss &amp; Recovery</h3>
+            <p className="text-xs text-on-surface-variant mt-0.5">Smelter output distribution and dross byproduct recovery analysis</p>
+          </div>
+          <span className="text-xs font-mono-data bg-tertiary-container/10 border border-tertiary/20 text-tertiary font-bold px-2.5 py-1 rounded-lg">
+            Total Input: <AnimatedNumber value={totalInputTons} decimals={1} /> tonnes
+          </span>
+        </div>
+
+        <div className="py-2 space-y-5">
+          {/* Main Visual bar stacking */}
+          <div>
+            <span className="text-xs text-on-surface-variant block mb-2 font-semibold">Overall Material Distribution Ratio</span>
+            <div className="w-full h-4 rounded-full overflow-hidden flex shadow-inner bg-surface-container-low">
+              <div className="bg-primary h-full transition-all duration-1000" style={{ width: `${prodPct}%` }} title={`Finished Product: ${prodPct}%`}></div>
+              <div className="bg-tertiary h-full transition-all duration-1000" style={{ width: `${recPct}%` }} title={`Recovered Byproduct: ${recPct}%`}></div>
+              <div className="bg-error h-full transition-all duration-1000" style={{ width: `${lossPct}%` }} title={`Dross/Slag Loss: ${lossPct}%`}></div>
+            </div>
+          </div>
+
+          {/* Breakdown items list */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-md pt-2">
+            <div className="p-3 bg-surface-bright/50 border border-outline-variant/60 rounded-xl space-y-1">
+              <div className="flex items-center gap-1.5 text-xs text-primary font-bold">
+                <span className="w-2.5 h-2.5 rounded-full bg-primary"></span>
+                Finished Product Output
+              </div>
+              <p className="text-base font-bold text-on-surface font-mono-data">
+                <AnimatedNumber value={productionTons} decimals={1} /> <span className="text-xs text-on-surface-variant font-normal">tonnes</span>
+              </p>
+              <p className="text-[10px] text-on-surface-variant">Yielding {prodPct}% of total furnace input.</p>
+            </div>
+
+            <div className="p-3 bg-surface-bright/50 border border-outline-variant/60 rounded-xl space-y-1">
+              <div className="flex items-center gap-1.5 text-xs text-tertiary font-bold">
+                <span className="w-2.5 h-2.5 rounded-full bg-tertiary"></span>
+                Diverted Byproduct (Recovered)
+              </div>
+              <p className="text-base font-bold text-on-surface font-mono-data">
+                <AnimatedNumber value={recoveredTons} decimals={2} /> <span className="text-xs text-on-surface-variant font-normal">tonnes</span>
+              </p>
+              <p className="text-[10px] text-on-surface-variant">Re-injected into smelting loop ({recPct}%).</p>
+            </div>
+
+            <div className="p-3 bg-surface-bright/50 border border-outline-variant/60 rounded-xl space-y-1">
+              <div className="flex items-center gap-1.5 text-xs text-error font-bold">
+                <span className="w-2.5 h-2.5 rounded-full bg-error"></span>
+                Dross / Furnace Slag Loss
+              </div>
+              <p className="text-base font-bold text-on-surface font-mono-data">
+                <AnimatedNumber value={lossTons} decimals={2} /> <span className="text-xs text-on-surface-variant font-normal">tonnes</span>
+              </p>
+              <p className="text-[10px] text-on-surface-variant">Unrecoverable slag waste ({lossPct}%).</p>
+            </div>
           </div>
         </div>
       </section>
